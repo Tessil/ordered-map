@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/Tessil/ordered-map.svg?branch=master)](https://travis-ci.org/Tessil/ordered-map) [![Build status](https://ci.appveyor.com/api/projects/status/7fug7piv59d0in36/branch/master?svg=true)](https://ci.appveyor.com/project/Tessil/ordered-map/branch/master)
 ## C++ hash map/set which preserves the order of insertion
 
 The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's [OrderedDict](https://docs.python.org/3/library/collections.html#collections.OrderedDict). When iterating over the map, the values will be returned in the same order as they were inserted.
