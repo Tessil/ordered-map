@@ -3,14 +3,26 @@
 
 The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's [OrderedDict](https://docs.python.org/3/library/collections.html#collections.OrderedDict). When iterating over the map, the values will be returned in the same order as they were inserted.
 
-The values are stored contiguously, no holes in-between values, in an underlying structure. By default a `std::deque` is used, but it is also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, the `data()` method is also provided to easily interact with C API.
+The values are stored contiguously in an underlying structure, no holes in-between values. By default a `std::deque` is used, but it is also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs.
 
-The library provides a behaviour similar to a `std::vector` with unique values but with an average search access of O(1).
+To resolve collisions on hashes, the library uses robin hood probing with backward shift deletion.
+
+The library provides a behaviour similar to a `std::vector` with unique values but with an average search complexity of O(1).
+
+Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
+
+### Key features
+- Header-only library, just include [src/ordered_map.h](src/ordered_map.h) to your project and you're ready to go.
+- Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
+- O(1) searches with performances similar to `std::unordered_map` but with faster insert and reduced memory usage.
+- Provide random access iterators and also reverse iterators.
+- Support for heterogeneous lookups.
+- API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
 - The iterators are `RandomAccessIterator`.
 - Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/doc/html/) for details).
-- Slow `erase` operation, it has a complexity of O(n). A faster O(1) version, `unordered_erase`, exists but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/doc/html/) for details).
+- Slow `erase` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/doc/html/) for details). An O(1) `pop_back()` is also available.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 tsl::ordered_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
@@ -82,7 +94,10 @@ int main() {
     set.insert('1');
     set.insert('\0');
     
-    // Get raw buffer for C API: 3491
+    set.pop_back();
+    set.insert({'0', '\0'});
+    
+    // Get raw buffer for C API: 34910
     std::cout << atoi(set.data()) << std::endl;
 }
 ```
