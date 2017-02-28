@@ -490,7 +490,7 @@ public:
     void swap(ordered_hash& other) {
         using std::swap;
         
-        swap(m_buckets, other.m_indexes);
+        swap(m_buckets, other.m_buckets);
         swap(m_values, other.m_values);
         swap(m_mask, other.m_mask);
         swap(m_max_load_factor, other.m_max_load_factor);
@@ -1331,7 +1331,7 @@ public:
     
     
     
-    void swap(ordered_map& other) { other.swap(*this); }
+    void swap(ordered_map& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
@@ -1763,7 +1763,7 @@ public:
     
     
     
-    void swap(ordered_set& other) { other.swap(*this); }
+    void swap(ordered_set& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
