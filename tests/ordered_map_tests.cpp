@@ -73,6 +73,44 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_range_insert) {
+    const int nb_values = 1000;
+    std::vector<std::pair<int, int>> values;
+    for(int i = 0; i < nb_values; i++) {
+        values.push_back(std::make_pair(i, i+1));
+    }
+    
+    
+    tsl::ordered_map<int, int> map = {{-1, 0}, {-2, 0}};
+    map.insert(std::next(values.begin(), 10), std::prev(values.end(), 5));
+    
+    BOOST_CHECK_EQUAL(map.size(), 987);
+    
+    BOOST_CHECK_EQUAL(map.values_container()[0].first, -1);
+    BOOST_CHECK_EQUAL(map.values_container()[0].second, 0);
+    
+    BOOST_CHECK_EQUAL(map.values_container()[1].first, -2);
+    BOOST_CHECK_EQUAL(map.values_container()[1].second, 0);
+    
+    for(int i = 10; i < nb_values - 5; i++) {
+        BOOST_CHECK_EQUAL(map.values_container()[i-8].first, i);
+        BOOST_CHECK_EQUAL(map.values_container()[i-8].second, i+1);
+    }
+    
+}
+
+
+BOOST_AUTO_TEST_CASE(test_insert_with_hint) {
+    tsl::ordered_map<int, int> map{{1, 0}, {2, 1}, {3, 2}};
+    BOOST_CHECK(map.insert(map.find(2), std::make_pair(3, 4)) == map.find(3));
+    BOOST_CHECK(map.insert(map.find(2), std::make_pair(2, 4)) == map.find(2));
+    BOOST_CHECK(map.insert(map.find(10), std::make_pair(2, 4)) == map.find(2));
+    
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    BOOST_CHECK_EQUAL(map.insert(map.find(10), std::make_pair(4, 3))->first, 4);
+    BOOST_CHECK_EQUAL(map.insert(map.find(2), std::make_pair(5, 4))->first, 5);
+}
+
 
 
 /**
@@ -181,7 +219,86 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_erase_insert, HMap, test_types) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_range_erase_same_iterators) {
+    const size_t nb_values = 100;
+    auto map = utils::get_filled_hash_map<tsl::ordered_map<int64_t, int64_t>>(nb_values);
+    
+    tsl::ordered_map<int64_t, int64_t>::const_iterator it_const = map.cbegin();
+    std::advance(it_const, 10);
+    
+    tsl::ordered_map<int64_t, int64_t>::iterator it_mutable = map.erase(it_const, it_const);
+    BOOST_CHECK(it_const == it_mutable);
+    BOOST_CHECK_EQUAL(map.size(), 100);
+    
+    it_mutable.value() = -100;
+    BOOST_CHECK_EQUAL(it_const.value(), -100);
+}
 
+
+/**
+ * operator== and operator!=
+ */
+BOOST_AUTO_TEST_CASE(test_compare) {
+    const tsl::ordered_map<std::string, int> map = {{"D", 1}, {"L", 2}, {"A", 3}};
+    
+    BOOST_ASSERT(map == (tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"A", 3}}));
+    BOOST_ASSERT(map != (tsl::ordered_map<std::string, int>{{"L", 2}, {"D", 1}, {"A", 3}}));
+    
+    
+    BOOST_ASSERT(map < (tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"B", 3}}));
+    BOOST_ASSERT(map <= (tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"B", 3}}));
+    BOOST_ASSERT(map <= (tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"A", 3}}));
+    
+    BOOST_ASSERT(map > (tsl::ordered_map<std::string, int>{{"D", 1}, {"K", 2}, {"A", 3}}));
+    BOOST_ASSERT(map >= (tsl::ordered_map<std::string, int>{{"D", 1}, {"K", 2}, {"A", 3}}));
+    BOOST_ASSERT(map >= (tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"A", 3}}));
+}
+
+
+/**
+ * iterator
+ */
+BOOST_AUTO_TEST_CASE(test_reverse_iterator) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 1}, {-2, 2}, {3, 3}};
+    map[2] = 4;
+    
+    std::size_t i = 4;
+    for(auto it = map.rbegin(); it != map.rend(); ++it) {
+        BOOST_CHECK_EQUAL(it->second, i);
+        i--;
+    }
+}
+
+
+
+/**
+ * at
+ */
+BOOST_AUTO_TEST_CASE(test_at) {
+    // insert x values, use at for known and unknown values.
+    tsl::ordered_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
+    
+    BOOST_CHECK_EQUAL(map.at(0), 10);
+    BOOST_CHECK_EQUAL(map.at(-2), 20);
+    BOOST_CHECK_THROW(map.at(1), std::out_of_range);
+}
+
+
+
+
+/**
+ * operator[]
+ */
+BOOST_AUTO_TEST_CASE(test_access_operator) {
+    // insert x values, use at for known and unknown values.
+    tsl::ordered_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
+    
+    BOOST_CHECK_EQUAL(map[0], 10);
+    BOOST_CHECK_EQUAL(map[-2], 20);
+    BOOST_CHECK_EQUAL(map[2], int64_t());
+    
+    BOOST_CHECK_EQUAL(map.size(), 3);
+}
 
 /**
  * swap
@@ -273,8 +390,9 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     
     
     BOOST_CHECK_EQUAL(map.erase(addr1), 1);
-    BOOST_CHECK_EQUAL(map.erase(addr2), 1);
+    BOOST_CHECK_EQUAL(map.unordered_erase(addr2), 1);
     BOOST_CHECK_EQUAL(map.erase(addr_unknown), 0);
+    BOOST_CHECK_EQUAL(map.unordered_erase(addr_unknown), 0);
     
     
     BOOST_CHECK_EQUAL(map.size(), 1);
