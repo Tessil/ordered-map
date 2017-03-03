@@ -20,5 +20,5 @@ build_script:
   
 test_script: 
   - set PATH=%PATH%;%BOOST_LIBRARYDIR%
-  - .\%CONFIGURATION%\test_hopscotch_map.exe
+  - .\%CONFIGURATION%\test_ordered_map.exe
   
