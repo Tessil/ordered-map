@@ -42,6 +42,9 @@
 #include <utility>
 #include <vector>
 
+#if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
+#define TSL_NO_CONTAINER_ERASE_CONST_ITERATOR
+#endif
 
 
 /*
@@ -441,7 +444,11 @@ public:
         const std::size_t end_index = start_index + nb_values;
         
         // Delete all values
+#ifdef TSL_NO_CONTAINER_ERASE_CONST_ITERATOR     
+        auto next_it = m_values.erase(get_mutable_iterator(first).m_iterator, get_mutable_iterator(last).m_iterator);   
+#else
         auto next_it = m_values.erase(first.m_iterator, last.m_iterator);
+#endif
         
         /*
          * Mark the buckets corresponding to the values as empty and do a backward shift.
