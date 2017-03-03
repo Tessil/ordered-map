@@ -215,16 +215,16 @@ public:
     
 private:
     /**
-     * Each bucket entry stores an uint64_t where the 32 least significant bits are used to store 
-     * the index in m_values corresponding to the bucket. The 32 most significant bits are used to store 
-     * the hash of the corresponding value in m_values.
+     * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket 
+     * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the value.
      */
     class bucket_entry {
-        using index_type = std::uint32_t;
-        using hash_type = std::size_t;
-        
     public:
-        bucket_entry() noexcept : m_hash_index(0) {
+        using index_type = std::uint32_t;
+        using truncated_hash_type = std::uint32_t;
+        
+        
+        bucket_entry() noexcept : m_index(0), m_hash(0) {
             set_empty();
         }
         
@@ -233,42 +233,35 @@ private:
         }
         
         bool empty() const noexcept {
-            return index_value() == empty_index;
+            return m_index == empty_index;
         }
         
         void set_empty() noexcept {
-            set_index(empty_index);
+            m_index = empty_index;
         }
         
         index_type index() const noexcept {
             tsl_assert(has_index());
-            return index_value();
+            return m_index;
         }
         
-        hash_type truncated_hash() const noexcept {
+        truncated_hash_type truncated_hash() const noexcept {
             tsl_assert(has_index());
-            return hash_value();
+            return m_hash;
         }
         
         void set_index(std::size_t index) noexcept {
             tsl_assert(index <= max_size());
             
-            m_hash_index &= 0xFFFFFFFF00000000;
-            m_hash_index |= static_cast<std::uint64_t>(index);
+            m_index = static_cast<index_type>(index & 0xFFFFFFFF);
         }
         
-        void set_index(index_type index) noexcept {
-            m_hash_index &= 0xFFFFFFFF00000000;
-            m_hash_index |= static_cast<std::uint64_t>(index);
+        void set_hash(std::size_t hash) noexcept {
+            m_hash = truncate_hash(hash);
         }
         
-        void set_hash(hash_type hash) noexcept {
-            m_hash_index &= 0x00000000FFFFFFFF;
-            m_hash_index |= (hash << 32);
-        }
-        
-        static hash_type truncate_hash(hash_type hash) {
-            return hash & 0xFFFFFFFF;
+        static truncated_hash_type truncate_hash(std::size_t hash) {
+            return static_cast<truncated_hash_type>(hash & 0xFFFFFFFF);
         }
         
         static std::size_t max_size() {
@@ -276,19 +269,11 @@ private:
         }
         
     private:
-        index_type index_value() const noexcept {
-            return m_hash_index & 0xFFFFFFFF;
-        }
-        
-        hash_type hash_value() const noexcept {
-            return m_hash_index >> 32;
-        }
-        
-    private:
         static const index_type empty_index = std::numeric_limits<index_type>::max();
         static const std::size_t nb_reserved_indexes = 1;
         
-        std::uint64_t m_hash_index;
+        index_type m_index;
+        truncated_hash_type m_hash;
     };
     
     
@@ -450,10 +435,10 @@ public:
             return get_mutable_iterator(first);
         }
         
-        const auto start_index = std::distance(cbegin(), first);
-        const auto nb_values = std::distance(first, last);
-        const auto end_index = start_index + nb_values;
-        tsl_assert(nb_values > 0 && start_index >= 0 && end_index > 0);
+        tsl_assert(std::distance(first, last) > 0 && std::distance(cbegin(), first) >= 0);
+        const std::size_t start_index = static_cast<std::size_t>(std::distance(cbegin(), first));
+        const std::size_t nb_values = static_cast<std::size_t>(std::distance(first, last));
+        const std::size_t end_index = start_index + nb_values;
         
         // Delete all values
         auto next_it = m_values.erase(first.m_iterator, last.m_iterator);
@@ -576,12 +561,12 @@ public:
     }
     
     void rehash(size_type count) {
-        count = std::max(count, static_cast<size_type>(std::ceil(size()/max_load_factor())));
+        count = std::max(count, static_cast<size_type>(std::ceil(static_cast<float>(size())/max_load_factor())));
         rehash_impl(count);
     }
     
     void reserve(size_type count) {
-        count = static_cast<size_type>(std::ceil(count/max_load_factor()));
+        count = static_cast<size_type>(std::ceil(static_cast<float>(count)/max_load_factor()));
         reserve_space_for_values(count);
         rehash(count);
     }
@@ -696,6 +681,7 @@ public:
         
         auto it_bucket_last_elem = find_key(KeySelect()(back()), m_hash(KeySelect()(back())));
         tsl_assert(it_bucket_last_elem != m_buckets.end());
+        tsl_assert(it_bucket_last_elem->has_index());
         tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
         
         
@@ -822,7 +808,7 @@ private:
     
     /**
      * Swap the empty bucket with the values on its right until we cross another empty bucket
-     * or if the other bucket has dist_from_initial_bucket == 0.
+     * or if the other bucket has a dist_from_initial_bucket == 0.
      */
     void backward_shift(std::size_t empty_ibucket) {
         tsl_assert(m_buckets[empty_ibucket].empty());
@@ -847,7 +833,7 @@ private:
         // it was the last value
         if(index_deleted != m_values.size()) {
             for(auto& bucket: m_buckets) {
-                if(bucket.has_index() && bucket.index() >= index_deleted) {
+                if(bucket.has_index() && bucket.index() > index_deleted) {
                     bucket.set_index(bucket.index() - 1);
                 }
             }
@@ -876,14 +862,15 @@ private:
     }
     
     /**
-     * From ibucket, search for an empty bucket to store the index 'ivalue' and the hash.
+     * From ibucket, search for an empty bucket to store the insert_index an the insert_hash.
      * 
      * If on the way we find a bucket with a value which is further away from its initial bucket
      * than our current probing, swap the indexes and the hashes and continue the search
      * for an empty bucket to store this new index and hash while continuing the swapping process.
      */
     void insert_with_robin_hood_swap(std::size_t ibucket, std::size_t iprobe, 
-                                     std::size_t insert_index, std::size_t insert_hash) 
+                                     typename bucket_entry::index_type insert_index, 
+                                     typename bucket_entry::truncated_hash_type insert_hash) 
     {
         while(true) {
             if(m_buckets[ibucket].empty()) {
@@ -896,8 +883,8 @@ private:
             tsl_assert(m_buckets[ibucket].has_index());
             const std::size_t distance = dist_from_initial_bucket(ibucket);
             if(iprobe > distance) {
-                std::size_t tmp_index = m_buckets[ibucket].index();
-                std::size_t tmp_hash = m_buckets[ibucket].truncated_hash();
+                const auto tmp_index = m_buckets[ibucket].index();
+                const auto tmp_hash = m_buckets[ibucket].truncated_hash();
                 
                 m_buckets[ibucket].set_index(insert_index);
                 m_buckets[ibucket].set_hash(insert_hash);
