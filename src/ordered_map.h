@@ -86,7 +86,83 @@ struct is_vector<T, typename std::enable_if<
                         std::is_same<T, std::vector<typename T::value_type, typename T::allocator_type>>::value
                     >::type> : std::true_type {
 };
+
+
+/**
+ * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket's value 
+ * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the hash of the value.
+ */
+class bucket_entry {
+public:
+    using index_type = std::uint32_t;
+    using truncated_hash_type = std::uint32_t;
     
+    
+    bucket_entry() noexcept : m_index(0), m_hash(0) {
+        set_empty();
+    }
+    
+    bool has_index() const noexcept {
+        return !empty();
+    }
+    
+    bool empty() const noexcept {
+        return m_index == empty_index;
+    }
+    
+    void set_empty() noexcept {
+        m_index = empty_index;
+    }
+    
+    index_type index() const noexcept {
+        tsl_assert(has_index());
+        return m_index;
+    }
+    
+    truncated_hash_type truncated_hash() const noexcept {
+        tsl_assert(has_index());
+        return m_hash;
+    }
+    
+    void set_index(std::size_t index) noexcept {
+        tsl_assert(index <= max_size());
+        
+        m_index = static_cast<index_type>(index);
+    }
+    
+    void set_hash(std::size_t hash) noexcept {
+        m_hash = truncate_hash(hash);
+    }
+    
+    static truncated_hash_type truncate_hash(std::size_t hash) {
+        return static_cast<truncated_hash_type>(hash);
+    }
+    
+    static std::size_t max_size() {
+        return std::numeric_limits<index_type>::max() - nb_reserved_indexes;
+    }
+    
+private:
+    static const index_type empty_index = std::numeric_limits<index_type>::max();
+    static const std::size_t nb_reserved_indexes = 1;
+    
+    index_type m_index;
+    truncated_hash_type m_hash;
+};
+
+/**
+ * Internal common class used by ordered_map and ordered_set.
+ * 
+ * ValueType is what will be stored by ordered_hash (usually std::pair<Key, T> for map and Key for set).
+ * 
+ * KeySelect should be a FunctionObject which takes a ValueType in parameter and return a reference to the key.
+ * 
+ * ValueSelect should be a FunctionObject which takes a ValueType in parameter and return a reference to the value. 
+ * ValueSelect should be void if there is no value (in set for example).
+ * 
+ * ValueTypeContainer is the container which will be used to store ValueType values. 
+ * Usually a std::deque<ValueType, Allocator> or std::vector<ValueType, Allocator>.
+ */
 template<class ValueType,
          class KeySelect,
          class ValueSelect,
@@ -217,69 +293,6 @@ public:
     
     
 private:
-    /**
-     * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket 
-     * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the value.
-     */
-    class bucket_entry {
-    public:
-        using index_type = std::uint32_t;
-        using truncated_hash_type = std::uint32_t;
-        
-        
-        bucket_entry() noexcept : m_index(0), m_hash(0) {
-            set_empty();
-        }
-        
-        bool has_index() const noexcept {
-            return !empty();
-        }
-        
-        bool empty() const noexcept {
-            return m_index == empty_index;
-        }
-        
-        void set_empty() noexcept {
-            m_index = empty_index;
-        }
-        
-        index_type index() const noexcept {
-            tsl_assert(has_index());
-            return m_index;
-        }
-        
-        truncated_hash_type truncated_hash() const noexcept {
-            tsl_assert(has_index());
-            return m_hash;
-        }
-        
-        void set_index(std::size_t index) noexcept {
-            tsl_assert(index <= max_size());
-            
-            m_index = static_cast<index_type>(index & 0xFFFFFFFF);
-        }
-        
-        void set_hash(std::size_t hash) noexcept {
-            m_hash = truncate_hash(hash);
-        }
-        
-        static truncated_hash_type truncate_hash(std::size_t hash) {
-            return static_cast<truncated_hash_type>(hash & 0xFFFFFFFF);
-        }
-        
-        static std::size_t max_size() {
-            return std::numeric_limits<index_type>::max() - nb_reserved_indexes;
-        }
-        
-    private:
-        static const index_type empty_index = std::numeric_limits<index_type>::max();
-        static const std::size_t nb_reserved_indexes = 1;
-        
-        index_type m_index;
-        truncated_hash_type m_hash;
-    };
-    
-    
     using buckets_container_allocator = typename 
                             std::allocator_traits<allocator_type>::template rebind_alloc<bucket_entry>; 
                             
@@ -761,7 +774,7 @@ private:
     void rehash_impl(size_type count) {
         count = round_up_to_power_of_two(count);
         if(count > max_size()) {
-            throw std::length_error("The map exceed its maxmimum size.");
+            throw std::length_error("The map exceeds its maxmimum size.");
         }
         
         
