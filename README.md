@@ -3,18 +3,18 @@
 
 The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's [OrderedDict](https://docs.python.org/3/library/collections.html#collections.OrderedDict). When iterating over the map, the values will be returned in the same order as they were inserted.
 
-The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used, but it is also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs.
+The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs.
 
 To resolve collisions on hashes, the library uses robin hood probing with backward shift deletion.
 
-The library provides a behaviour similar to a `std::vector` with unique values but with an average search complexity of O(1).
+The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average search complexity of O(1). This comes at the price of a little higher memory footprint (8 bytes per entry if the load factor is 1, around 16 bytes per entry for a 0.5 load factor).
 
 Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
 ### Key features
 - Header-only library, just include [src/ordered_map.h](src/ordered_map.h) to your project and you're ready to go.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
-- O(1) searches with performances similar to `std::unordered_map` but with faster insert and reduced memory usage.
+- O(1) searches with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage.
 - Provide random access iterators and also reverse iterators.
 - Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](https://github.com/Tessil/ordered-map#heterogeneous-lookup)).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
