@@ -251,7 +251,16 @@ Friends</h2></td></tr>
 <tr class="memitem:a4b591e94eec8c892827d8a9986fe6542"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a4b591e94eec8c892827d8a9986fe6542">operator&gt;=</a> (const <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">ordered_hash</a> &amp;lhs, const <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">ordered_hash</a> &amp;rhs)</td></tr>
 <tr class="separator:a4b591e94eec8c892827d8a9986fe6542"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Member Typedef Documentation</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><h3>template&lt;class ValueType, class KeySelect, class ValueSelect, class Hash, class KeyEqual, class Allocator, class ValueTypeContainer&gt;<br />
+class tsl::detail_ordered_hash::ordered_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, ValueTypeContainer &gt;</h3>
+
+<p>Internal common class used by <a class="el" href="classtsl_1_1ordered__map.html">ordered_map</a> and <a class="el" href="classtsl_1_1ordered__set.html">ordered_set</a>.</p>
+<p>ValueType is what will be stored by <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">ordered_hash</a> (usually std::pair&lt;Key, T&gt; for map and Key for set).</p>
+<p>KeySelect should be a FunctionObject which takes a ValueType in parameter and return a reference to the key.</p>
+<p>ValueSelect should be a FunctionObject which takes a ValueType in parameter and return a reference to the value. ValueSelect should be void if there is no value (in set for example).</p>
+<p>ValueTypeContainer is the container which will be used to store ValueType values. Usually a std::deque&lt;ValueType, Allocator&gt; or std::vector&lt;ValueType, Allocator&gt;. </p>
+</div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="af9e8a0059565f2741ca3fe0ed71d9c33"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af9e8a0059565f2741ca3fe0ed71d9c33">&#9670;&nbsp;</a></span>allocator_type</h2>
 
