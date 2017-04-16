@@ -704,8 +704,8 @@ public:
         tsl_assert(it_bucket_last_elem->has_index());
         tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
         
-        
-        std::swap(m_values[it_bucket_key->index()], m_values[it_bucket_last_elem->index()]);
+        using std::swap;
+        swap(m_values[it_bucket_key->index()], m_values[it_bucket_last_elem->index()]);
         
         const std::size_t tmp_index = it_bucket_key->index();
         it_bucket_key->set_index(it_bucket_last_elem->index());
