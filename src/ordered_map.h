@@ -280,17 +280,14 @@ public:
             return lhs.m_iterator >= rhs.m_iterator; 
         }
 
-        friend difference_type operator+(const ordered_iterator& lhs, const ordered_iterator& rhs) { 
-            return lhs.m_iterator + rhs.m_iterator; 
-        }
-        
+        friend ordered_iterator operator+(difference_type n, const ordered_iterator& it) { 
+			return n + it.m_iterator;
+		}
+
         friend difference_type operator-(const ordered_iterator& lhs, const ordered_iterator& rhs) { 
             return lhs.m_iterator - rhs.m_iterator; 
         }
 
-        friend ordered_iterator operator+(difference_type n, const ordered_iterator& it) { 
-			return n + it.m_iterator;
-		}
     private:
         iterator m_iterator;
     };
