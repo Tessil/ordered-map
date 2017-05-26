@@ -317,6 +317,52 @@ BOOST_AUTO_TEST_CASE(test_iterator_arithmetic) {
     BOOST_CHECK_EQUAL(it[2].second, 40);
 }
 
+/**
+ * operator=
+ */
+BOOST_AUTO_TEST_CASE(test_assign_operator) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    map = {{4, 40}, {5, 50}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK_EQUAL(map.at(4), 40);
+}
+
+
+BOOST_AUTO_TEST_CASE(test_copy) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
+    tsl::ordered_map<int64_t, int64_t> map2 = map;
+    tsl::ordered_map<int64_t, int64_t> map3;
+    map3 = map;
+    
+    BOOST_CHECK(map == map2);
+    BOOST_CHECK(map == map3);
+}
+
+
+BOOST_AUTO_TEST_CASE(test_move) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
+    tsl::ordered_map<int64_t, int64_t> map2 = std::move(map);
+    
+    BOOST_CHECK(map.empty());
+    BOOST_CHECK(map.begin() == map.end());
+    BOOST_CHECK_EQUAL(map2.size(), 3);
+    BOOST_CHECK(map2 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}, {3, 30}}));
+    
+    
+    tsl::ordered_map<int64_t, int64_t> map3;
+    map3 = std::move(map2);
+    
+    BOOST_CHECK(map2.empty());
+    BOOST_CHECK(map2.begin() == map2.end());
+    BOOST_CHECK_EQUAL(map3.size(), 3);
+    BOOST_CHECK(map3 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}, {3, 30}}));
+    
+    map2 = {{1, 10}, {2, 20}};
+    BOOST_CHECK(map2 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}}));
+}
+
 
 /**
  * at
@@ -443,6 +489,39 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     
     
     BOOST_CHECK_EQUAL(map.size(), 1);
+}
+
+
+
+/**
+ * Various operations on empty map
+ */
+BOOST_AUTO_TEST_CASE(test_empty_map) {
+    tsl::ordered_map<std::string, int> map(0);
+    
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK(map.empty());
+    
+    BOOST_CHECK(map.begin() == map.end());
+    BOOST_CHECK(map.begin() == map.cend());
+    BOOST_CHECK(map.cbegin() == map.cend());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map.find("test") == map.end());
+    
+    BOOST_CHECK_EQUAL(map.count(""), 0);
+    BOOST_CHECK_EQUAL(map.count("test"), 0);
+    
+    BOOST_CHECK_THROW(map.at(""), std::out_of_range);
+    BOOST_CHECK_THROW(map.at("test"), std::out_of_range);
+    
+    auto range = map.equal_range("test");
+    BOOST_CHECK(range.first == range.second);
+    
+    BOOST_CHECK_EQUAL(map.erase("test"), 0);
+    BOOST_CHECK(map.erase(map.begin(), map.end()) == map.end());
+    
+    BOOST_CHECK_EQUAL(map["new value"], int{});
 }
 
 
