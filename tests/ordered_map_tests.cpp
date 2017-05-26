@@ -269,6 +269,53 @@ BOOST_AUTO_TEST_CASE(test_reverse_iterator) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_iterator_arithmetic) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}, 
+                                              {4, 40}, {5, 50}, {6, 60}};
+                                              
+    tsl::ordered_map<int64_t, int64_t>::const_iterator it;
+    tsl::ordered_map<int64_t, int64_t>::const_iterator it2;
+    
+    it = map.cbegin();
+    // it += n
+    it += 3;
+    BOOST_CHECK_EQUAL(it->second, 40);
+    
+    
+    
+    // it + n
+    BOOST_CHECK_EQUAL((map.cbegin() + 3)->second, 40);
+    // n + it
+    BOOST_CHECK_EQUAL((3 + map.cbegin())->second, 40);
+    
+    
+    
+    it = map.cbegin() + 4;
+    // it -= n
+    it -= 2;
+    BOOST_CHECK_EQUAL(it->second, 30);
+    
+    
+    
+    // it - n
+    BOOST_CHECK_EQUAL((it - 1)->second, 20);
+    
+    
+    
+    it = map.cbegin() + 2;
+    it2 = map.cbegin() + 4;
+    // it - it
+    BOOST_CHECK_EQUAL(it2 - it, 2);
+    
+    
+    
+    // it[n]
+    BOOST_CHECK_EQUAL(map.cbegin()[2].second, 30);
+    
+    it = map.cbegin() + 1;
+    // it[n]
+    BOOST_CHECK_EQUAL(it[2].second, 40);
+}
 
 
 /**
