@@ -398,7 +398,10 @@ public:
      * Modifiers
      */
     void clear() noexcept {
-        m_buckets.clear();
+        for(auto& bucket: m_buckets) {
+            bucket.set_empty();
+        }
+        
         m_values.clear();
     }
     
