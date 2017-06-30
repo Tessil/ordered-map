@@ -74,6 +74,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
 }
 
 BOOST_AUTO_TEST_CASE(test_range_insert) {
+    // insert x values in vector, range insert x-15 values from vector to map, check values
     const int nb_values = 1000;
     std::vector<std::pair<int, int>> values;
     for(int i = 0; i < nb_values; i++) {
@@ -92,9 +93,9 @@ BOOST_AUTO_TEST_CASE(test_range_insert) {
     BOOST_CHECK_EQUAL(map.values_container()[1].first, -2);
     BOOST_CHECK_EQUAL(map.values_container()[1].second, 0);
     
-    for(int i = 10; i < nb_values - 5; i++) {
-        BOOST_CHECK_EQUAL(map.values_container()[i-8].first, i);
-        BOOST_CHECK_EQUAL(map.values_container()[i-8].second, i+1);
+    for(int i = 10, j = 2; i < nb_values - 5; i++, j++) {
+        BOOST_CHECK_EQUAL(map.values_container()[j].first, i);
+        BOOST_CHECK_EQUAL(map.values_container()[j].second, i+1);
     }
     
 }
@@ -109,6 +110,97 @@ BOOST_AUTO_TEST_CASE(test_insert_with_hint) {
     BOOST_CHECK_EQUAL(map.size(), 3);
     BOOST_CHECK_EQUAL(map.insert(map.find(10), std::make_pair(4, 3))->first, 4);
     BOOST_CHECK_EQUAL(map.insert(map.find(2), std::make_pair(5, 4))->first, 5);
+}
+
+/**
+ * emplace
+ */
+BOOST_AUTO_TEST_CASE(test_emplace) {
+    tsl::ordered_map<int64_t, move_only_test> map;
+    tsl::ordered_map<int64_t, move_only_test>::iterator it;
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.emplace(10, 1);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.emplace(10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(!inserted);
+}
+
+/**
+ * try_emplace
+ */
+BOOST_AUTO_TEST_CASE(test_try_emplace) {
+    tsl::ordered_map<int64_t, move_only_test> map;
+    tsl::ordered_map<int64_t, move_only_test>::iterator it;
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.try_emplace(10, 1);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.try_emplace(10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(!inserted);
+}
+
+BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
+    tsl::ordered_map<int64_t, move_only_test> map(0);
+    
+    auto it = map.try_emplace(map.find(10), 10, 1);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    
+    
+    it = map.try_emplace(map.find(10), 10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+}
+
+
+/**
+ * insert_or_assign
+ */
+BOOST_AUTO_TEST_CASE(test_insert_or_assign) {
+    tsl::ordered_map<int64_t, move_only_test> map;
+    tsl::ordered_map<int64_t, move_only_test>::iterator it;    
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.insert_or_assign(10, move_only_test(1));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.insert_or_assign(10, move_only_test(3));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+    BOOST_CHECK(!inserted);
+}
+
+
+BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
+    tsl::ordered_map<int64_t, move_only_test> map(0);
+    
+    auto it = map.insert_or_assign(map.find(10), 10, move_only_test(1));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    
+    
+    it = map.insert_or_assign(map.find(10), 10, move_only_test(3));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(3));
 }
 
 
@@ -234,6 +326,30 @@ BOOST_AUTO_TEST_CASE(test_range_erase_same_iterators) {
     BOOST_CHECK_EQUAL(it_const.value(), -100);
 }
 
+/**
+ * unordered_erase
+ */
+BOOST_AUTO_TEST_CASE(test_unordered_erase) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}, 
+                                              {4, 40}, {5, 50}, {6, 60}};
+    BOOST_CHECK_EQUAL(map.size(), 6);
+    
+    
+    BOOST_CHECK_EQUAL(map.unordered_erase(3), 1);
+    BOOST_CHECK_EQUAL(map.size(), 5);
+    
+    BOOST_CHECK_EQUAL(map.unordered_erase(0), 0);
+    BOOST_CHECK_EQUAL(map.size(), 5);
+    
+    
+    auto it = map.begin();
+    while(it != map.end()) {
+        it = map.unordered_erase(it);
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), 0);
+}
+
 
 /**
  * operator== and operator!=
@@ -255,6 +371,26 @@ BOOST_AUTO_TEST_CASE(test_compare) {
 }
 
 
+
+/**
+ * clear
+ */
+BOOST_AUTO_TEST_CASE(test_clear) {
+    // insert x values, clear map
+    const size_t nb_values = 1000;
+    auto map = utils::get_filled_hash_map<tsl::ordered_map<int64_t, int64_t>>(nb_values);
+    
+    map.clear();
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 0);
+    
+    map.insert({5, -5});
+    map.insert({{1, -1}, {2, -1}, {4, -4}, {3, -3}});
+    
+    BOOST_CHECK(map == (tsl::ordered_map<int64_t, int64_t>({{5, -5}, {1, -1}, {2, -1}, {4, -4}, {3, -3}})));
+}
+
+
 /**
  * iterator
  */
@@ -264,6 +400,12 @@ BOOST_AUTO_TEST_CASE(test_reverse_iterator) {
     
     std::size_t i = 4;
     for(auto it = map.rbegin(); it != map.rend(); ++it) {
+        BOOST_CHECK_EQUAL(it->second, i);
+        i--;
+    }
+    
+    i = 4;
+    for(auto it = map.rcbegin(); it != map.rcend(); ++it) {
         BOOST_CHECK_EQUAL(it->second, i);
         i--;
     }
@@ -315,7 +457,88 @@ BOOST_AUTO_TEST_CASE(test_iterator_arithmetic) {
     it = map.cbegin() + 1;
     // it[n]
     BOOST_CHECK_EQUAL(it[2].second, 40);
+    
+    
+    
+    it = map.cbegin();
+    // it++
+    it++;
+    BOOST_CHECK_EQUAL((it++)->second, 20);
+    
+    
+    it = map.cbegin();
+    // ++it
+    ++it;
+    BOOST_CHECK_EQUAL((++it)->second, 30);
+    
+    
+    
+    it = map.cend();
+    // it--
+    it--;
+    BOOST_CHECK_EQUAL((it--)->second, 60);
+    
+    
+    it = map.cend();
+    // --it
+    --it;
+    BOOST_CHECK_EQUAL((--it)->second, 50);
 }
+
+BOOST_AUTO_TEST_CASE(test_iterator_compartors) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}, 
+                                              {4, 40}, {5, 50}, {6, 60}};
+                                              
+    tsl::ordered_map<int64_t, int64_t>::const_iterator it;
+    tsl::ordered_map<int64_t, int64_t>::const_iterator it2;
+    
+    it = map.begin() + 1;
+    it2 = map.end() - 1;
+    
+    BOOST_CHECK(it < it2);
+    BOOST_CHECK(it <= it2);
+    BOOST_CHECK(it2 > it);
+    BOOST_CHECK(it2 >= it);
+    
+    it = map.begin() + 3;
+    it2 = map.end() - 3;
+    
+    BOOST_CHECK(it == it2);
+    BOOST_CHECK(it <= it2);
+    BOOST_CHECK(it >= it2);
+    BOOST_CHECK(it2 <= it);
+    BOOST_CHECK(it2 >= it);
+    BOOST_CHECK(!(it < it2));
+    BOOST_CHECK(!(it > it2));
+    BOOST_CHECK(!(it2 < it));
+    BOOST_CHECK(!(it2 > it));
+}
+
+
+/**
+ * iterator.value()
+ */
+BOOST_AUTO_TEST_CASE(test_modify_value) {
+    // insert x values, modify value of even keys, check values
+    const size_t nb_values = 100;
+    auto map = utils::get_filled_hash_map<tsl::ordered_map<int64_t, int64_t>>(nb_values);
+    
+    for(auto it = map.begin(); it != map.end(); ++it) {
+        if(it->first % 2 == 0) {
+            it.value() = -1;
+        }
+    }
+    
+    for(auto& val : map) {
+        if(val.first % 2 == 0) {
+            BOOST_CHECK_EQUAL(val.second, -1);
+        }
+        else {
+            BOOST_CHECK_NE(val.second, -1);
+        }
+    }
+}
+
 
 /**
  * operator=
@@ -338,6 +561,7 @@ BOOST_AUTO_TEST_CASE(test_copy) {
     
     BOOST_CHECK(map == map2);
     BOOST_CHECK(map == map3);
+    BOOST_CHECK_EQUAL(map.size(), 3);
 }
 
 
@@ -377,7 +601,17 @@ BOOST_AUTO_TEST_CASE(test_at) {
 }
 
 
-
+/**
+ * data()
+ */
+BOOST_AUTO_TEST_CASE(test_data) {
+    tsl::ordered_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
+                    std::allocator<std::pair<int64_t, int64_t>>, 
+                    std::vector<std::pair<int64_t, int64_t>>> map = {{1, -1}, {2, -2}, {4, -4}, {3, -3}};
+    
+    BOOST_CHECK(std::equal(map.data(), map.data() + map.size(), map.begin()));
+    BOOST_CHECK(std::equal(map.data(), map.data() + map.size(), map.values_container().data()));
+}
 
 /**
  * operator[]
