@@ -609,8 +609,7 @@ BOOST_AUTO_TEST_CASE(test_data) {
                     std::allocator<std::pair<int64_t, int64_t>>, 
                     std::vector<std::pair<int64_t, int64_t>>> map = {{1, -1}, {2, -2}, {4, -4}, {3, -3}};
     
-    BOOST_CHECK(std::equal(map.data(), map.data() + map.size(), map.begin()));
-    BOOST_CHECK(std::equal(map.data(), map.data() + map.size(), map.values_container().data()));
+    BOOST_CHECK(map.data() == map.values_container().data());
 }
 
 /**
