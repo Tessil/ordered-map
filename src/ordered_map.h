@@ -793,14 +793,8 @@ private:
         }
     }
     
-    void rehash_impl(size_type count) {
-        count = round_up_to_power_of_two(count);
-        if(count > max_size()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
-        }
-        
-        
-        buckets_container_type old_buckets(count);
+    void rehash_impl(size_type bucket_count) {
+        buckets_container_type old_buckets(round_up_to_power_of_two(bucket_count));
         m_buckets.swap(old_buckets);
         
         this->max_load_factor(m_max_load_factor);
@@ -1006,7 +1000,11 @@ private:
     
     
     void resize_if_needed(std::size_t delta) {
-        if(size() + delta >= m_load_threshold) {
+        if(size() + delta > m_load_threshold) {
+            if(size() + delta > max_size()) {
+                throw std::length_error("Can't resize, the map would exceed its maxmimum size.");
+            }
+            
             rehash_impl(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
         }
     }
