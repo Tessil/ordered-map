@@ -650,16 +650,7 @@ public:
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
     typename U::value_type& operator[](K&& key) {
-        // TODO Optimize
-        using T = typename U::value_type;
-        
-        auto it = find(key);
-        if(it != end()) {
-            return it.value();
-        }
-        else {
-            return insert(std::make_pair(std::forward<K>(key), T())).first.value();
-        }
+        return insert_impl(std::forward<K>(key), hash_key(key)).first.value();
     }
     
     const_reference front() const {
