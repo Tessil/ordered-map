@@ -169,7 +169,7 @@ template<class ValueType,
          class KeyEqual,
          class Allocator,
          class ValueTypeContainer>
-class ordered_hash {
+class ordered_hash: private Hash, private KeyEqual {
 private:
     static_assert(std::is_same<typename ValueTypeContainer::value_type, ValueType>::value, 
                   "ValueTypeContainer::value_type != ValueType.");
@@ -302,7 +302,8 @@ public:
                  const Hash& hash,
                  const KeyEqual& equal,
                  const Allocator& alloc,
-                 float max_load_factor) : m_buckets(alloc), m_values(alloc), m_hash(hash), m_key_equal(equal)
+                 float max_load_factor) : Hash(hash), KeyEqual(equal), 
+                                          m_buckets(alloc), m_values(alloc)
     {
         if(bucket_count == 0) {
             m_mask = 0;
@@ -402,7 +403,7 @@ public:
     
     template<typename P>
     std::pair<iterator, bool> insert(P&& value) {
-        return insert_impl(KeySelect()(value), m_hash(KeySelect()(value)), std::forward<P>(value));
+        return insert_impl(KeySelect()(value), hash_key(KeySelect()(value)), std::forward<P>(value));
     }
     
     template<class InputIt>
@@ -426,7 +427,7 @@ public:
     
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign(K&& key, M&& value) {
-        auto it = insert_impl(std::forward<K>(key), m_hash(key), std::forward<M>(value));
+        auto it = insert_impl(std::forward<K>(key), hash_key(key), std::forward<M>(value));
         if(!it.second) {
             it.first.value() = std::forward<M>(value);
         }
@@ -441,7 +442,7 @@ public:
     
     template<class K, class... Args>
     std::pair<iterator, bool> try_emplace(K&& key, Args&&... value_args) {
-        return insert_impl(std::forward<K>(key), m_hash(key), std::forward<Args>(value_args)...);
+        return insert_impl(std::forward<K>(key), hash_key(key), std::forward<Args>(value_args)...);
     }
     
     iterator erase(iterator pos) {
@@ -453,7 +454,7 @@ public:
         
         const std::size_t index_erase = iterator_to_index(pos);
         
-        auto it_bucket = find_key(pos.key(), m_hash(pos.key()));
+        auto it_bucket = find_key(pos.key(), hash_key(pos.key()));
         tsl_assert(it_bucket != m_buckets.end());
         
         erase_value_from_bucket(it_bucket);
@@ -514,13 +515,13 @@ public:
     void swap(ordered_hash& other) {
         using std::swap;
         
+        swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
+        swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
         swap(m_buckets, other.m_buckets);
         swap(m_values, other.m_values);
         swap(m_mask, other.m_mask);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
-        swap(m_hash, other.m_hash);
-        swap(m_key_equal, other.m_key_equal);
     }
     
         
@@ -545,7 +546,7 @@ public:
             return end();
         }
         
-        auto it_bucket = find_key(key, m_hash(key));
+        auto it_bucket = find_key(key, hash_key(key));
         return (it_bucket != m_buckets.end())?begin() + it_bucket->index():end();
     }
     
@@ -555,7 +556,7 @@ public:
             return cend();
         }
         
-        auto it_bucket = find_key(key, m_hash(key));
+        auto it_bucket = find_key(key, hash_key(key));
         return (it_bucket != m_buckets.cend())?cbegin() + it_bucket->index():cend();
     }
     
@@ -615,12 +616,12 @@ public:
      * Observers
      */
     hasher hash_function() const {
-        return m_hash;
+        return static_cast<Hash>(*this);
     }
     
     key_equal key_eq() const {
-        return m_key_equal;
-    }    
+        return static_cast<KeyEqual>(*this);
+    }
 
     
     /*
@@ -714,13 +715,13 @@ public:
             return 0;
         }
         
-        auto it_bucket_key = find_key(key, m_hash(key));
+        auto it_bucket_key = find_key(key, hash_key(key));
         if(it_bucket_key == m_buckets.end()) {
             return 0;
         }
         
 
-        auto it_bucket_last_elem = find_key(KeySelect()(back()), m_hash(KeySelect()(back())));
+        auto it_bucket_last_elem = find_key(KeySelect()(back()), hash_key(KeySelect()(back())));
         tsl_assert(it_bucket_last_elem != m_buckets.end());
         tsl_assert(!it_bucket_last_elem->empty());
         tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
@@ -766,6 +767,16 @@ public:
     
 private:
     template<class K>
+    std::size_t hash_key(const K& key) const {
+        return Hash::operator()(key);
+    }
+    
+    template<class K1, class K2>
+    bool compare_keys(const K1& key1, const K2& key2) const {
+        return KeyEqual::operator()(key1, key2);
+    }
+    
+    template<class K>
     typename buckets_container_type::iterator find_key(const K& key, std::size_t hash) {
         auto it = static_cast<const ordered_hash*>(this)->find_key(key, hash);
         return m_buckets.begin() + std::distance(m_buckets.cbegin(), it);
@@ -783,7 +794,7 @@ private:
                 return m_buckets.end();
             }
             else if(m_buckets[ibucket].truncated_hash() == truncated_hash && 
-                    m_key_equal(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+                    compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
                 return m_buckets.begin() + ibucket;
             }
@@ -885,7 +896,7 @@ private:
             return 0;
         }
         
-        auto it_bucket = find_key(key, m_hash(key));
+        auto it_bucket = find_key(key, hash_key(key));
         if(it_bucket != m_buckets.end()) {
             erase_value_from_bucket(it_bucket);
             
@@ -972,7 +983,7 @@ private:
                 return std::make_pair(std::prev(end()), true);
             }
             else if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-                    m_key_equal(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+                    compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
                 return std::make_pair(begin() + m_buckets[ibucket].index(), false);
             }
@@ -1066,9 +1077,6 @@ private:
     
     float m_max_load_factor;
     size_type m_load_threshold;
-    
-    Hash m_hash;
-    KeyEqual m_key_equal;
 };
 
 
