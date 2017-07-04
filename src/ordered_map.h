@@ -653,6 +653,14 @@ public:
         return insert_impl(std::forward<K>(key), hash_key(key)).first.value();
     }
     
+    iterator nth(size_type index) {
+        return iterator(m_values.begin() + index);
+    }
+    
+    const_iterator nth(size_type index) const {
+        return const_iterator(m_values.cbegin() + index);
+    }
+    
     const_reference front() const {
         return m_values.front();
     }
@@ -1547,8 +1555,30 @@ public:
     /*
      * Other
      */
+    
+    /**
+     * Requires index <= size().
+     * 
+     * Return an iterator to the element at index. Return end() if index == size().
+     */
+    iterator nth(size_type index) { return m_ht.nth(index); }
+    
+    /**
+     * @copydoc nth(size_type index)
+     */
+    const_iterator nth(size_type index) const { return m_ht.nth(index); }
+    
+    
+    /**
+     * Return const_reference to the first element. Requires the container to not be empty.
+     */
     const_reference front() const { return m_ht.front(); }
+    
+    /**
+     * Return const_reference to the last element. Requires the container to not be empty.
+     */
     const_reference back() const { return m_ht.back(); }
+    
     
     /**
      * Only available if ValueTypeContainer is a std::vector. Same as calling 'values_container().data()'.
@@ -1964,8 +1994,30 @@ public:
     /*
      * Other
      */
+    
+    /**
+     * Requires index <= size().
+     * 
+     * Return an iterator to the element at index. Return end() if index == size().
+     */
+    iterator nth(size_type index) { return m_ht.nth(index); }
+    
+    /**
+     * @copydoc nth(size_type index)
+     */
+    const_iterator nth(size_type index) const { return m_ht.nth(index); }
+    
+    
+    /**
+     * Return const_reference to the first element. Requires the container to not be empty.
+     */
     const_reference front() const { return m_ht.front(); }
+    
+    /**
+     * Return const_reference to the last element. Requires the container to not be empty.
+     */
     const_reference back() const { return m_ht.back(); }
+    
     
     /**
      * Only available if ValueTypeContainer is a std::vector. Same as calling 'values_container().data()'.

@@ -644,6 +644,45 @@ BOOST_AUTO_TEST_CASE(test_swap) {
     BOOST_CHECK(map2 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {8, 80}, {3, 30}}));
 }
 
+/**
+ * front(), back()
+ */
+BOOST_AUTO_TEST_CASE(test_front_back) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}};
+    map.insert({0, 0});
+    
+    BOOST_CHECK(map.front() == (std::pair<int64_t, int64_t>(1, 10)));
+    BOOST_CHECK(map.back() == (std::pair<int64_t, int64_t>(0, 0)));
+    
+    
+    map.clear();
+    map.insert({3, 30});
+    BOOST_CHECK(map.front() == (std::pair<int64_t, int64_t>(3, 30)));
+    BOOST_CHECK(map.back() == (std::pair<int64_t, int64_t>(3, 30)));
+}
+
+/**
+ * nth()
+ */
+BOOST_AUTO_TEST_CASE(test_nth) {
+    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}};
+    map.insert({0, 0});
+    
+    BOOST_CHECK(map.nth(0) != map.end());
+    BOOST_CHECK(*map.nth(0) == (std::pair<int64_t, int64_t>(1, 10)));
+    
+    BOOST_CHECK(map.nth(1) != map.end());
+    BOOST_CHECK(*map.nth(1) == (std::pair<int64_t, int64_t>(2, 20)));
+    
+    BOOST_CHECK(map.nth(2) != map.end());
+    BOOST_CHECK(*map.nth(2) == (std::pair<int64_t, int64_t>(0, 0)));
+    
+    BOOST_CHECK(map.nth(3) == map.end());
+    
+    
+    map.clear();
+    BOOST_CHECK(map.nth(0) == map.end());
+}
 
 /**
  * other
