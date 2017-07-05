@@ -597,7 +597,7 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
+        m_load_threshold = std::min(size_type(float(bucket_count())*m_max_load_factor), max_size());
     }
     
     void rehash(size_type count) {
