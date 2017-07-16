@@ -1049,11 +1049,11 @@ private:
     
 public:
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
-    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.95f;
+    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
     static const size_type REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
     
     
-    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 8;
+    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 16;
     static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.5f;
     
     bool rehash_on_high_nb_probes(std::size_t nb_probes) {
