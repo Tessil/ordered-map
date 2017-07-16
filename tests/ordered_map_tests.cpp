@@ -606,6 +606,21 @@ BOOST_AUTO_TEST_CASE(test_at) {
 
 
 /**
+ * equal_range
+ */
+BOOST_AUTO_TEST_CASE(test_equal_range) {
+    tsl::ordered_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
+    
+    auto it_pair = map.equal_range(0);
+    BOOST_REQUIRE_EQUAL(std::distance(it_pair.first, it_pair.second), 1);
+    BOOST_CHECK_EQUAL(it_pair.first->second, 10);
+    
+    it_pair = map.equal_range(1);
+    BOOST_CHECK(it_pair.first == it_pair.second);
+    BOOST_CHECK(it_pair.first == map.end());
+}
+
+/**
  * data()
  */
 BOOST_AUTO_TEST_CASE(test_data) {

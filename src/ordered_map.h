@@ -564,13 +564,13 @@ public:
     template<class K>
     std::pair<iterator, iterator> equal_range(const K& key) {
         iterator it = find(key);
-        return std::make_pair(it, it);
+        return std::make_pair(it, (it == end())?it:std::next(it));
     }
     
     template<class K>
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const {
         const_iterator it = find(key);
-        return std::make_pair(it, it);
+        return std::make_pair(it, (it == cend())?it:std::next(it));
     }    
     
     
