@@ -522,6 +522,7 @@ public:
         swap(m_mask, other.m_mask);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
+        swap(m_min_load_factor_rehash_threshold, other.m_min_load_factor_rehash_threshold);
     }
     
         
@@ -598,6 +599,7 @@ public:
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
         m_load_threshold = std::min(size_type(float(bucket_count())*m_max_load_factor), max_size());
+        m_min_load_factor_rehash_threshold = size_type(bucket_count()*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR);
     }
     
     void rehash(size_type count) {
@@ -1058,7 +1060,7 @@ public:
     
     bool rehash_on_high_nb_probes(std::size_t nb_probes) {
         if(nb_probes >= REHASH_ON_HIGH_NB_PROBES__NPROBES && 
-           load_factor() >= REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR) 
+           size() >= m_min_load_factor_rehash_threshold) 
         {
             rehash_impl(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
             return true;
@@ -1076,6 +1078,7 @@ private:
     
     float m_max_load_factor;
     size_type m_load_threshold;
+    size_type m_min_load_factor_rehash_threshold;
 };
 
 
