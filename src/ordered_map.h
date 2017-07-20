@@ -509,7 +509,12 @@ public:
 
     template<class K>
     size_type erase(const K& key) {
-        return erase_impl(key);
+        return erase(key, hash_key(key));
+    }
+    
+    template<class K>
+    size_type erase(const K& key, std::size_t hash) {
+        return erase_impl(key, hash);
     }
     
     void swap(ordered_hash& other) {
@@ -533,7 +538,12 @@ public:
      */    
     template<class K>
     size_type count(const K& key) const {
-        if(find(key) == end()) {
+        return count(key, hash_key(key));
+    }
+    
+    template<class K>
+    size_type count(const K& key, std::size_t hash) const {
+        if(find(key, hash) == end()) {
             return 0;
         }
         else {
@@ -543,33 +553,54 @@ public:
     
     template<class K>
     iterator find(const K& key) {
+        return find(key, hash_key(key));
+    }
+    
+    template<class K>
+    iterator find(const K& key, std::size_t hash) {
         if(empty()) {
             return end();
         }
         
-        auto it_bucket = find_key(key, hash_key(key));
+        auto it_bucket = find_key(key, hash);
         return (it_bucket != m_buckets.end())?begin() + it_bucket->index():end();
     }
     
     template<class K>
     const_iterator find(const K& key) const {
+        return find(key, hash_key(key));
+    }
+    
+    template<class K>
+    const_iterator find(const K& key, std::size_t hash) const {
         if(empty()) {
             return cend();
         }
         
-        auto it_bucket = find_key(key, hash_key(key));
+        auto it_bucket = find_key(key, hash);
         return (it_bucket != m_buckets.cend())?cbegin() + it_bucket->index():cend();
     }
     
+    
     template<class K>
     std::pair<iterator, iterator> equal_range(const K& key) {
-        iterator it = find(key);
+        return equal_range(key, hash_key(key));
+    }
+    
+    template<class K>
+    std::pair<iterator, iterator> equal_range(const K& key, std::size_t hash) {
+        iterator it = find(key, hash);
         return std::make_pair(it, (it == end())?it:std::next(it));
     }
     
     template<class K>
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const {
-        const_iterator it = find(key);
+        return equal_range(key, hash_key(key));
+    }
+    
+    template<class K>
+    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t hash) const {
+        const_iterator it = find(key, hash);
         return std::make_pair(it, (it == cend())?it:std::next(it));
     }    
     
@@ -635,12 +666,22 @@ public:
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
     typename U::value_type& at(const K& key) {
-        return const_cast<typename U::value_type&>(static_cast<const ordered_hash*>(this)->at(key));
+        return at(key, hash_key(key));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    typename U::value_type& at(const K& key, std::size_t hash) {
+        return const_cast<typename U::value_type&>(static_cast<const ordered_hash*>(this)->at(key, hash));
     }
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
     const typename U::value_type& at(const K& key) const {
-        auto it = find(key);
+        return at(key, hash_key(key));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    const typename U::value_type& at(const K& key, std::size_t hash) const {
+        auto it = find(key, hash);
         if(it != end()) {
             return it.value();
         }
@@ -712,11 +753,16 @@ public:
     
     template<class K>
     size_type unordered_erase(const K& key) {
+        return unordered_erase(key, hash_key(key));
+    }
+    
+    template<class K>
+    size_type unordered_erase(const K& key, std::size_t hash) {
         if(empty()) {
             return 0;
         }
         
-        auto it_bucket_key = find_key(key, hash_key(key));
+        auto it_bucket_key = find_key(key, hash);
         if(it_bucket_key == m_buckets.end()) {
             return 0;
         }
@@ -892,12 +938,12 @@ private:
     }
     
     template<class K>
-    size_type erase_impl(const K& key) {
+    size_type erase_impl(const K& key, std::size_t hash) {
         if(empty()) {
             return 0;
         }
         
-        auto it_bucket = find_key(key, hash_key(key));
+        auto it_bucket = find_key(key, hash);
         if(it_bucket != m_buckets.end()) {
             erase_value_from_bucket(it_bucket);
             
@@ -1448,11 +1494,32 @@ public:
     /**
      * @copydoc erase(iterator pos)
      * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     */    
+    size_type erase(const key_type& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc erase(iterator pos)
+     * 
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
+    
+    /**
+     * @copydoc erase(const key_type& key, std::size_t precalculated_hash)
+     * 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type erase(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
     
     
     
@@ -1462,7 +1529,21 @@ public:
      * Lookup
      */
     T& at(const Key& key) { return m_ht.at(key); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    T& at(const Key& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
+    
+    
     const T& at(const Key& key) const { return m_ht.at(key); }
+    
+    /**
+     * @copydoc at(const Key& key, std::size_t precalculated_hash)
+     */
+    const T& at(const Key& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
+    
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -1473,9 +1554,24 @@ public:
     
     /**
      * @copydoc at(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */    
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    T& at(const K& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
+    
+    /**
+     * @copydoc at(const K& key)
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
     const T& at(const K& key) const { return m_ht.at(key); }
+    
+    /**
+     * @copydoc at(const K& key, std::size_t precalculated_hash)
+     */    
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    const T& at(const K& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
     
     
     
@@ -1487,16 +1583,49 @@ public:
     size_type count(const Key& key) const { return m_ht.count(key); }
     
     /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    size_type count(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.count(key, precalculated_hash); 
+    }
+    
+    /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
     size_type count(const K& key) const { return m_ht.count(key); }
     
+    /**
+     * @copydoc count(const K& key) const
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */     
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type count(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.count(key, precalculated_hash);
+    }
+    
     
     
     iterator find(const Key& key) { return m_ht.find(key); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    iterator find(const Key& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
+    
     const_iterator find(const Key& key) const { return m_ht.find(key); }
+    
+    /**
+     * @copydoc find(const Key& key, std::size_t precalculated_hash)
+     */
+    const_iterator find(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.find(key, precalculated_hash);
+    }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -1507,14 +1636,50 @@ public:
     
     /**
      * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    iterator find(const K& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
+    
+    /**
+     * @copydoc find(const K& key)
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
+    /**
+     * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    const_iterator find(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.find(key, precalculated_hash); 
+    }
+    
     
     
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    std::pair<iterator, iterator> equal_range(const Key& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
+    
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    
+    /**
+     * @copydoc equal_range(const Key& key, std::size_t precalculated_hash)
+     */
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
 
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -1525,9 +1690,30 @@ public:
     
     /**
      * @copydoc equal_range(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    std::pair<iterator, iterator> equal_range(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc equal_range(const K& key)
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
+    
+    /**
+     * @copydoc equal_range(const K& key, std::size_t precalculated_hash)
+     */    
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
+    
+    
     
     /*
      * Bucket interface 
@@ -1558,6 +1744,13 @@ public:
     /*
      * Other
      */
+    
+    /**
+     * Convert a const_iterator to an iterator.
+     */
+    iterator mutable_iterator(const_iterator pos) {
+        return m_ht.mutable_iterator(pos);
+    }
     
     /**
      * Requires index <= size().
@@ -1622,11 +1815,32 @@ public:
     /**
      * @copydoc unordered_erase(iterator pos)
      * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */    
+    size_type unordered_erase(const key_type& key, std::size_t precalculated_hash) { 
+        return m_ht.unordered_erase(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc unordered_erase(iterator pos)
+     * 
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type unordered_erase(const K& key) { return m_ht.unordered_erase(key); }
+    
+    /**
+     * @copydoc unordered_erase(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type unordered_erase(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.unordered_erase(key, precalculated_hash); 
+    }
     
     
     
@@ -1909,11 +2123,32 @@ public:
     /**
      * @copydoc erase(iterator pos)
      * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     */    
+    size_type erase(const key_type& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc erase(iterator pos)
+     * 
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
+    
+    /**
+     * @copydoc erase(const key_type& key, std::size_t precalculated_hash)
+     * 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type erase(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
     
     
     
@@ -1925,17 +2160,50 @@ public:
     size_type count(const Key& key) const { return m_ht.count(key); }
     
     /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    size_type count(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.count(key, precalculated_hash); 
+    }
+    
+    /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
     size_type count(const K& key) const { return m_ht.count(key); }
     
+    /**
+     * @copydoc count(const K& key) const
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */     
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type count(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.count(key, precalculated_hash);
+    }
+    
     
     
     
     iterator find(const Key& key) { return m_ht.find(key); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    iterator find(const Key& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
+    
     const_iterator find(const Key& key) const { return m_ht.find(key); }
+    
+    /**
+     * @copydoc find(const Key& key, std::size_t precalculated_hash)
+     */
+    const_iterator find(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.find(key, precalculated_hash);
+    }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -1946,14 +2214,50 @@ public:
     
     /**
      * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    iterator find(const K& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
+    
+    /**
+     * @copydoc find(const K& key)
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
+    /**
+     * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    const_iterator find(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.find(key, precalculated_hash); 
+    }
+    
     
     
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    std::pair<iterator, iterator> equal_range(const Key& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
+    
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    
+    /**
+     * @copydoc equal_range(const Key& key, std::size_t precalculated_hash)
+     */
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -1964,9 +2268,28 @@ public:
     
     /**
      * @copydoc equal_range(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    std::pair<iterator, iterator> equal_range(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc equal_range(const K& key)
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
+    
+    /**
+     * @copydoc equal_range(const K& key, std::size_t precalculated_hash)
+     */    
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
+    }
     
 
     /*
@@ -1997,6 +2320,13 @@ public:
     /*
      * Other
      */
+    
+    /**
+     * Convert a const_iterator to an iterator.
+     */
+    iterator mutable_iterator(const_iterator pos) {
+        return m_ht.mutable_iterator(pos);
+    }
     
     /**
      * Requires index <= size().
@@ -2061,11 +2391,32 @@ public:
     /**
      * @copydoc unordered_erase(iterator pos)
      * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */    
+    size_type unordered_erase(const key_type& key, std::size_t precalculated_hash) { 
+        return m_ht.unordered_erase(key, precalculated_hash); 
+    }
+    
+    /**
+     * @copydoc unordered_erase(iterator pos)
+     * 
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type unordered_erase(const K& key) { return m_ht.unordered_erase(key); }
+    
+    /**
+     * @copydoc unordered_erase(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type unordered_erase(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.unordered_erase(key, precalculated_hash); 
+    }
     
     
     
