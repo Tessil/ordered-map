@@ -1055,8 +1055,8 @@ public:
     static const size_type REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
     
     
-    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 16;
-    static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.5f;
+    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
+    static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
     
     bool rehash_on_high_nb_probes(std::size_t nb_probes) {
         if(nb_probes >= REHASH_ON_HIGH_NB_PROBES__NPROBES && 
