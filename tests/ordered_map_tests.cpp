@@ -18,7 +18,13 @@ using test_types = boost::mpl::list<tsl::ordered_map<int64_t, int64_t>,
                                     tsl::ordered_map<int64_t, int64_t, mod_hash<9>>,
                                     tsl::ordered_map<std::string, self_reference_member_test, mod_hash<9>>,
                                     tsl::ordered_map<move_only_test, move_only_test, mod_hash<9>>,
-                                    tsl::ordered_map<self_reference_member_test, self_reference_member_test, mod_hash<9>>
+                                    tsl::ordered_map<self_reference_member_test, self_reference_member_test, 
+                                                     mod_hash<9>>,
+                                    tsl::ordered_map<move_only_test, move_only_test, 
+                                                     mod_hash<9>, std::equal_to<move_only_test>,
+                                                     std::allocator<std::pair<move_only_test, move_only_test>>,
+                                                     std::deque<std::pair<move_only_test, move_only_test>>,
+                                                     tsl::prime_growth_policy_om>
                                     >;
 
 /**
@@ -121,9 +127,7 @@ BOOST_AUTO_TEST_CASE(test_emplace) {
     bool inserted;
     
     
-    std::tie(it, inserted) = map.emplace(std::piecewise_construct,
-                                            std::forward_as_tuple(10),
-                                            std::forward_as_tuple(1));
+    std::tie(it, inserted) = map.emplace(10, 1);
     BOOST_CHECK_EQUAL(it->first, 10);
     BOOST_CHECK_EQUAL(it->second, move_only_test(1));
     BOOST_CHECK(inserted);
@@ -167,6 +171,11 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
     
     
     it = map.try_emplace(map.find(10), 10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    
+    
+    it = map.try_emplace(map.find(-1), 10, 3);
     BOOST_CHECK_EQUAL(it->first, 10);
     BOOST_CHECK_EQUAL(it->second, move_only_test(1));
 }
@@ -557,8 +566,55 @@ BOOST_AUTO_TEST_CASE(test_assign_operator) {
 }
 
 
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
+    tsl::ordered_map<int, int> map = {{2, 1}, {1, 1}, {3, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    tsl::ordered_map<int, int> map_move(std::move(map));
+    BOOST_CHECK_EQUAL(map_move.size(), 3);
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    
+    BOOST_CHECK(map_move == (tsl::ordered_map<int, int>({{2, 1}, {1, 1}, {3, 1}})));
+    BOOST_CHECK(map == (tsl::ordered_map<int, int>()));
+    
+    
+    for(int i = 4; i <= 100; i++) {
+        map_move.insert({i, 1});
+    }
+    BOOST_CHECK_EQUAL(map_move.size(), 100);
+    
+    
+    map = {{4, 1}, {5, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK(map == (tsl::ordered_map<int, int>({{4, 1}, {5, 1}})));
+}
+
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
+    tsl::ordered_map<int, int> map = {{2, 1}, {1, 1}, {3, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    tsl::ordered_map<int, int> map_move = std::move(map);
+    BOOST_CHECK_EQUAL(map_move.size(), 3);
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    
+    BOOST_CHECK(map_move == (tsl::ordered_map<int, int>({{2, 1}, {1, 1}, {3, 1}})));
+    BOOST_CHECK(map == (tsl::ordered_map<int, int>()));
+    
+    
+    for(int i = 4; i <= 100; i++) {
+        map_move.insert({i, 1});
+    }
+    BOOST_CHECK_EQUAL(map_move.size(), 100);
+    
+    
+    map = {{4, 1}, {5, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK(map == (tsl::ordered_map<int, int>({{4, 1}, {5, 1}})));
+}
+
+
 BOOST_AUTO_TEST_CASE(test_copy) {
-    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
+    tsl::ordered_map<int64_t, int64_t> map = {{2, 20}, {1, 10}, {3, 30}};
     tsl::ordered_map<int64_t, int64_t> map2 = map;
     tsl::ordered_map<int64_t, int64_t> map3;
     map3 = map;
@@ -566,29 +622,6 @@ BOOST_AUTO_TEST_CASE(test_copy) {
     BOOST_CHECK(map == map2);
     BOOST_CHECK(map == map3);
     BOOST_CHECK_EQUAL(map.size(), 3);
-}
-
-
-BOOST_AUTO_TEST_CASE(test_move) {
-    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
-    tsl::ordered_map<int64_t, int64_t> map2 = std::move(map);
-    
-    BOOST_CHECK(map.empty());
-    BOOST_CHECK(map.begin() == map.end());
-    BOOST_CHECK_EQUAL(map2.size(), 3);
-    BOOST_CHECK(map2 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}, {3, 30}}));
-    
-    
-    tsl::ordered_map<int64_t, int64_t> map3;
-    map3 = std::move(map2);
-    
-    BOOST_CHECK(map2.empty());
-    BOOST_CHECK(map2.begin() == map2.end());
-    BOOST_CHECK_EQUAL(map3.size(), 3);
-    BOOST_CHECK(map3 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}, {3, 30}}));
-    
-    map2 = {{1, 10}, {2, 20}};
-    BOOST_CHECK(map2 == (tsl::ordered_map<int64_t, int64_t>{{1, 10}, {2, 20}}));
 }
 
 
