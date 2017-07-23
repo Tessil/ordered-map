@@ -127,7 +127,9 @@ BOOST_AUTO_TEST_CASE(test_emplace) {
     bool inserted;
     
     
-    std::tie(it, inserted) = map.emplace(10, 1);
+    std::tie(it, inserted) = map.emplace(std::piecewise_construct,
+                                            std::forward_as_tuple(10),
+                                            std::forward_as_tuple(1));
     BOOST_CHECK_EQUAL(it->first, 10);
     BOOST_CHECK_EQUAL(it->second, move_only_test(1));
     BOOST_CHECK(inserted);
