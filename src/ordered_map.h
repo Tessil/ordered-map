@@ -1074,11 +1074,12 @@ private:
         
         
         buckets_container_type old_buckets(bucket_count);
-        m_buckets.swap(old_buckets);
-        
         
         using std::swap;
         swap(static_cast<GrowthPolicy&>(*this), new_growth_policy);
+        
+        m_buckets.swap(old_buckets);
+        
         
         
         this->max_load_factor(m_max_load_factor);
