@@ -597,7 +597,8 @@ public:
         }
         
         m_values.emplace_back(std::forward<P>(value));
-        insert_index(ibucket, dist_from_init_bucket, m_values.size() - 1, bucket_entry::truncate_hash(hash));
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
         
         return std::make_pair(std::prev(end()), true);
     }
@@ -664,7 +665,8 @@ public:
                               std::forward_as_tuple(std::forward<K>(key)), 
                               std::forward_as_tuple(std::forward<Args>(value_args)...));
                               
-        insert_index(ibucket, dist_from_init_bucket, m_values.size() - 1, bucket_entry::truncate_hash(hash));
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
         
         return std::make_pair(std::prev(end()), true);        
     }
