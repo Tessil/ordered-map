@@ -26,8 +26,10 @@
 
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -62,7 +64,154 @@
 
 namespace tsl {
 
+
+/**
+ * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
+ * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
+ */
+template<std::size_t GrowthFactor>
+class power_of_two_growth_policy_om {
+public:
+    /**
+     * Called on map creation and rehash. The number of buckets requested is passed by parameter.
+     * This number is a minimum, the policy may update this value with a higher value if needed.
+     */
+    power_of_two_growth_policy_om(std::size_t& min_bucket_count_in_out) {
+        if(min_bucket_count_in_out > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        static_assert(MIN_BUCKETS_SIZE > 0, "");
+        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
+        
+        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
+        min_bucket_count_in_out = round_up_to_power_of_two(min_bucket_count_in_out);
+        m_mask = min_bucket_count_in_out - 1;
+    }
     
+    /**
+     * Return the bucket [0, bucket_count()) to which the hash belongs.
+     */
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return hash & m_mask;
+    }
+    
+    /**
+     * Return the bucket count to uses when the bucket array grows on rehash.
+     */
+    std::size_t next_bucket_count() const {
+        if((m_mask + 1) > max_bucket_count() / GrowthFactor) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        return (m_mask + 1) * GrowthFactor;
+    }
+    
+    /**
+     * Return the maximum number of buckets supported by the policy.
+     */
+    std::size_t max_bucket_count() const {
+        return std::numeric_limits<std::size_t>::max() / GrowthFactor + 1;
+    }
+    
+private:
+    static std::size_t round_up_to_power_of_two(std::size_t value) {
+        if(value == 0) {
+            return 1;
+        }
+        
+        if(is_power_of_two(value)) {
+            return value;
+        }
+            
+        --value;
+        for(std::size_t i = 1; i < sizeof(std::size_t) * CHAR_BIT; i *= 2) {
+            value |= value >> i;
+        }
+        
+        return value + 1;
+    }
+    
+    static constexpr bool is_power_of_two(std::size_t value) {
+        return value != 0 && (value & (value - 1)) == 0;
+    }
+    
+private:
+    static const std::size_t MIN_BUCKETS_SIZE = 2;
+    
+    std::size_t m_mask;
+};
+
+
+namespace detail_ordered_hash {
+
+static constexpr const std::array<std::size_t, 39> PRIMES = {{
+    5ul, 17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
+    3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 1572869ul, 3145739ul, 
+    6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 402653189ul, 805306457ul, 
+    1610612741ul, 3221225473ul, 4294967291ul
+}};
+
+template<unsigned int IPrime>
+static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
+
+// MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
+// compiler can optimize the modulo code better with a constant known at the compilation.
+static constexpr const std::array<std::size_t(*)(std::size_t), 39> MOD_PRIME = {{ 
+    &mod<0>, &mod<1>, &mod<2>, &mod<3>, &mod<4>, &mod<5>, &mod<6>, &mod<7>, &mod<8>, &mod<9>, &mod<10>, 
+    &mod<11>, &mod<12>, &mod<13>, &mod<14>, &mod<15>, &mod<16>, &mod<17>, &mod<18>, &mod<19>, &mod<20>, 
+    &mod<21>, &mod<22>, &mod<23>, &mod<24>, &mod<25>, &mod<26>, &mod<27>, &mod<28>, &mod<29>, &mod<30>, 
+    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> , &mod<38>
+}};
+
+}
+
+/**
+ * Grow the map by using prime numbers as size. Slower than tsl::power_of_two_growth_policy in general 
+ * but will probably distribute the values around better in the buckets with a poor hash function.
+ */
+class prime_growth_policy_om {
+public:
+    prime_growth_policy_om(std::size_t& min_bucket_count_in_out) {
+        auto it_prime = std::lower_bound(tsl::detail_ordered_hash::PRIMES.begin(), 
+                                         tsl::detail_ordered_hash::PRIMES.end(), min_bucket_count_in_out);
+        if(it_prime == tsl::detail_ordered_hash::PRIMES.end()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_ordered_hash::PRIMES.begin(), it_prime));
+        min_bucket_count_in_out = *it_prime;
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return bucket_for_hash_iprime(hash, m_iprime);
+    }
+    
+    std::size_t next_bucket_count() const {
+        if(m_iprime + 1 >= tsl::detail_ordered_hash::PRIMES.size()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        return tsl::detail_ordered_hash::PRIMES[m_iprime + 1];
+    }   
+    
+    std::size_t max_bucket_count() const {
+        return tsl::detail_ordered_hash::PRIMES.back();
+    }
+    
+private:  
+    std::size_t bucket_for_hash_iprime(std::size_t hash, unsigned int iprime) const {
+        tsl_assert(iprime < tsl::detail_ordered_hash::MOD_PRIME.size());
+        return tsl::detail_ordered_hash::MOD_PRIME[iprime](hash);
+    }
+    
+private:
+    unsigned int m_iprime;
+};
+
+
+
+
 namespace detail_ordered_hash {
     
 template<typename T>
@@ -116,13 +265,23 @@ public:
         return m_index;
     }
     
+    index_type& index_ref() noexcept {
+        tsl_assert(!empty());
+        return m_index;
+    }
+    
     void set_index(std::size_t index) noexcept {
         tsl_assert(index <= max_size());
         
-        m_index = static_cast<index_type>(index);
+        m_index = index_type(index);
     }
     
     truncated_hash_type truncated_hash() const noexcept {
+        tsl_assert(!empty());
+        return m_hash;
+    }
+    
+    truncated_hash_type& truncated_hash_ref() noexcept {
         tsl_assert(!empty());
         return m_hash;
     }
@@ -134,7 +293,7 @@ public:
     
     
     static truncated_hash_type truncate_hash(std::size_t hash) noexcept {
-        return static_cast<truncated_hash_type>(hash);
+        return truncated_hash_type(hash);
     }
     
     static std::size_t max_size() noexcept {
@@ -168,9 +327,13 @@ template<class ValueType,
          class Hash,
          class KeyEqual,
          class Allocator,
-         class ValueTypeContainer>
-class ordered_hash: private Hash, private KeyEqual {
+         class ValueTypeContainer,
+         class GrowthPolicy>
+class ordered_hash: private Hash, private KeyEqual, private GrowthPolicy {
 private:
+    template<typename U>
+    using has_mapped_type = typename std::integral_constant<bool, !std::is_same<U, void>::value>;
+    
     static_assert(std::is_same<typename ValueTypeContainer::value_type, ValueType>::value, 
                   "ValueTypeContainer::value_type != ValueType.");
     static_assert(std::is_same<typename ValueTypeContainer::allocator_type, Allocator>::value, 
@@ -212,6 +375,7 @@ public:
         
         ordered_iterator(iterator it) noexcept : m_iterator(it) {
         }
+        
     public:
         using iterator_category = std::random_access_iterator_tag;
         using value_type = const typename ordered_hash::value_type;
@@ -230,10 +394,13 @@ public:
             return KeySelect()(*m_iterator);
         }
 
-        template<class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-        typename std::conditional<is_const, const typename U::value_type&, typename U::value_type&>::type value() const
+        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+        typename std::conditional<
+            is_const, 
+            const typename U::value_type&, 
+            typename U::value_type&>::type value() const
         {
-            return m_iterator->second;
+            return U()(*m_iterator);
         }
         
         reference operator*() const { return *m_iterator; }
@@ -297,23 +464,27 @@ private:
     using buckets_container_type = std::vector<bucket_entry, buckets_container_allocator>;
     
     
+    using truncated_hash_type = typename bucket_entry::truncated_hash_type;
+    using index_type = typename bucket_entry::index_type;
+    
 public:
     ordered_hash(size_type bucket_count, 
                  const Hash& hash,
                  const KeyEqual& equal,
                  const Allocator& alloc,
                  float max_load_factor) : Hash(hash), KeyEqual(equal), 
-                                          m_buckets(alloc), m_values(alloc)
+                                          // We need a non-zero size
+                                          GrowthPolicy(bucket_count == 0?++bucket_count:bucket_count), 
+                                          m_buckets(alloc), m_values(alloc), m_grow_on_next_insert(false)
     {
-        if(bucket_count == 0) {
-            m_mask = 0;
-        }
-        else {
-            m_buckets.resize(round_up_to_power_of_two(bucket_count));
-            m_mask = this->bucket_count() - 1;
+        if(bucket_count > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
         }
         
+        m_buckets.resize(bucket_count);
         this->max_load_factor(max_load_factor);
+        
+        tsl_assert(bucket_count > 0);
     }
     
     allocator_type get_allocator() const {
@@ -386,7 +557,7 @@ public:
     }
     
     size_type max_size() const noexcept {
-        return std::min(bucket_entry::max_size(), std::min(m_values.max_size(), m_buckets.max_size()));
+        return bucket_entry::max_size();
     }
     
 
@@ -403,19 +574,46 @@ public:
     
     template<typename P>
     std::pair<iterator, bool> insert(P&& value) {
-        return insert_impl(KeySelect()(value), hash_key(KeySelect()(value)), std::forward<P>(value));
+        const std::size_t hash = hash_key(KeySelect()(value));
+        
+        std::size_t ibucket = bucket_for_hash(hash); 
+        std::size_t dist_from_init_bucket = 0;
+        
+        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(KeySelect()(value), KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+            {
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+            }
+            
+            ibucket = next_bucket(ibucket);
+            dist_from_init_bucket++;
+        }
+        
+        
+        if(grow_on_high_load()) {
+            ibucket = bucket_for_hash(hash);
+            dist_from_init_bucket = 0;
+        }
+        
+        m_values.emplace_back(std::forward<P>(value));
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
+        
+        return std::make_pair(std::prev(end()), true);
     }
     
     template<class InputIt>
     void insert(InputIt first, InputIt last) {
         if(std::is_base_of<std::forward_iterator_tag, 
-                          typename std::iterator_traits<InputIt>::iterator_category>::value) 
+                           typename std::iterator_traits<InputIt>::iterator_category>::value) 
         {
             const auto nb_elements_insert = std::distance(first, last);
-            const std::size_t nb_free_buckets = bucket_count() - size();
+            const std::size_t nb_free_buckets = m_load_threshold - size();
+            tsl_assert(m_load_threshold >= size());
             
-            if(nb_elements_insert > 0 && nb_free_buckets < static_cast<std::size_t>(nb_elements_insert)) {
-                reserve(size() + (nb_elements_insert - nb_free_buckets));
+            if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
+                reserve(size() + (std::size_t(nb_elements_insert) - nb_free_buckets));
             }
         }
         
@@ -424,10 +622,9 @@ public:
         }
     }
     
-    
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign(K&& key, M&& value) {
-        auto it = insert_impl(std::forward<K>(key), hash_key(key), std::forward<M>(value));
+        auto it = try_emplace(std::forward<K>(key), std::forward<M>(value));
         if(!it.second) {
             it.first.value() = std::forward<M>(value);
         }
@@ -442,7 +639,36 @@ public:
     
     template<class K, class... Args>
     std::pair<iterator, bool> try_emplace(K&& key, Args&&... value_args) {
-        return insert_impl(std::forward<K>(key), hash_key(key), std::forward<Args>(value_args)...);
+        const std::size_t hash = hash_key(key);
+        
+        std::size_t ibucket = bucket_for_hash(hash); 
+        std::size_t dist_from_init_bucket = 0;
+        
+        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+            {
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+            }
+            
+            ibucket = next_bucket(ibucket);
+            dist_from_init_bucket++;
+        }
+        
+        
+        if(grow_on_high_load()) {
+            ibucket = bucket_for_hash(hash);
+            dist_from_init_bucket = 0;
+        }
+        
+        m_values.emplace_back(std::piecewise_construct, 
+                              std::forward_as_tuple(std::forward<K>(key)), 
+                              std::forward_as_tuple(std::forward<Args>(value_args)...));
+                              
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
+        
+        return std::make_pair(std::prev(end()), true);        
     }
     
     iterator erase(iterator pos) {
@@ -522,9 +748,10 @@ public:
         
         swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
+        swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
         swap(m_buckets, other.m_buckets);
         swap(m_values, other.m_values);
-        swap(m_mask, other.m_mask);
+        swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
         swap(m_min_load_factor_rehash_threshold, other.m_min_load_factor_rehash_threshold);
@@ -536,6 +763,39 @@ public:
     /*
      * Lookup
      */    
+    template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+    typename U::value_type& at(const K& key) {
+        return at(key, hash_key(key));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+    typename U::value_type& at(const K& key, std::size_t hash) {
+        return const_cast<typename U::value_type&>(static_cast<const ordered_hash*>(this)->at(key, hash));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+    const typename U::value_type& at(const K& key) const {
+        return at(key, hash_key(key));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+    const typename U::value_type& at(const K& key, std::size_t hash) const {
+        auto it = find(key, hash);
+        if(it != end()) {
+            return it.value();
+        }
+        else {
+            throw std::out_of_range("Couldn't find the key.");
+        }
+    }
+    
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
+    typename U::value_type& operator[](K&& key) {
+        return try_emplace(std::forward<K>(key)).first.value();
+    }
+    
+    
     template<class K>
     size_type count(const K& key) const {
         return count(key, hash_key(key));
@@ -543,7 +803,7 @@ public:
     
     template<class K>
     size_type count(const K& key, std::size_t hash) const {
-        if(find(key, hash) == end()) {
+        if(find(key, hash) == cend()) {
             return 0;
         }
         else {
@@ -558,10 +818,6 @@ public:
     
     template<class K>
     iterator find(const K& key, std::size_t hash) {
-        if(empty()) {
-            return end();
-        }
-        
         auto it_bucket = find_key(key, hash);
         return (it_bucket != m_buckets.end())?begin() + it_bucket->index():end();
     }
@@ -573,10 +829,6 @@ public:
     
     template<class K>
     const_iterator find(const K& key, std::size_t hash) const {
-        if(empty()) {
-            return cend();
-        }
-        
         auto it_bucket = find_key(key, hash);
         return (it_bucket != m_buckets.cend())?cbegin() + it_bucket->index():cend();
     }
@@ -613,7 +865,7 @@ public:
     }
     
     size_type max_bucket_count() const {
-        return m_buckets.max_size();
+        return std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
     }    
     
     /*
@@ -629,7 +881,7 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = std::min(size_type(float(bucket_count())*m_max_load_factor), max_size());
+        m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
         m_min_load_factor_rehash_threshold = size_type(bucket_count()*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR);
     }
     
@@ -639,8 +891,9 @@ public:
     }
     
     void reserve(size_type count) {
-        count = size_type(std::ceil(float(count)/max_load_factor()));
         reserve_space_for_values(count);
+        
+        count = size_type(std::ceil(float(count)/max_load_factor()));
         rehash(count);
     }
     
@@ -662,38 +915,6 @@ public:
      */
     iterator mutable_iterator(const_iterator pos) {
         return begin() + iterator_to_index(pos);
-    }
-    
-    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    typename U::value_type& at(const K& key) {
-        return at(key, hash_key(key));
-    }
-    
-    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    typename U::value_type& at(const K& key, std::size_t hash) {
-        return const_cast<typename U::value_type&>(static_cast<const ordered_hash*>(this)->at(key, hash));
-    }
-    
-    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    const typename U::value_type& at(const K& key) const {
-        return at(key, hash_key(key));
-    }
-    
-    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    const typename U::value_type& at(const K& key, std::size_t hash) const {
-        auto it = find(key, hash);
-        if(it != end()) {
-            return it.value();
-        }
-        else {
-            throw std::out_of_range("Couldn't find the key.");
-        }
-    }
-    
-    
-    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    typename U::value_type& operator[](K&& key) {
-        return insert_impl(std::forward<K>(key), hash_key(key)).first.value();
     }
     
     iterator nth(size_type index) {
@@ -731,10 +952,7 @@ public:
     }
 
     void pop_back() {
-        if(empty()) {
-            return;
-        }
-        
+        tsl_assert(!empty());
         erase(std::prev(end()));
     }
     
@@ -747,7 +965,7 @@ public:
         const std::size_t index_erase = iterator_to_index(pos);
         unordered_erase(pos.key());
         
-        // One element was deleted, index_erase now point to the next element
+        // One element was deleted, index_erase now point to the next element as the elements were shifted
         return begin() + index_erase;
     }
     
@@ -758,10 +976,6 @@ public:
     
     template<class K>
     size_type unordered_erase(const K& key, std::size_t hash) {
-        if(empty()) {
-            return 0;
-        }
-        
         auto it_bucket_key = find_key(key, hash);
         if(it_bucket_key == m_buckets.end()) {
             return 0;
@@ -776,10 +990,7 @@ public:
         if(it_bucket_key != it_bucket_last_elem) {
             using std::swap;
             swap(m_values[it_bucket_key->index()], m_values[it_bucket_last_elem->index()]);
-            
-            const std::size_t tmp_index = it_bucket_key->index();
-            it_bucket_key->set_index(it_bucket_last_elem->index());
-            it_bucket_last_elem->set_index(tmp_index);
+            swap(it_bucket_key->index_ref(), it_bucket_last_elem->index_ref());
         }
         
         erase_value_from_bucket(it_bucket_key);
@@ -834,29 +1045,45 @@ private:
      */
     template<class K>
     typename buckets_container_type::const_iterator find_key(const K& key, std::size_t hash) const {
-        const auto truncated_hash = bucket_entry::truncate_hash(hash);
-        
-        for(std::size_t ibucket = bucket_for_hash(hash), iprobe = 0; ; ibucket = next_probe(ibucket), ++iprobe) {
+        for(std::size_t ibucket = bucket_for_hash(hash), dist_from_init_bucket = 0; ; 
+            ibucket = next_bucket(ibucket), dist_from_init_bucket++) 
+        {
             if(m_buckets[ibucket].empty()) {
                 return m_buckets.end();
             }
-            else if(m_buckets[ibucket].truncated_hash() == truncated_hash && 
+            else if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
                     compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
                 return m_buckets.begin() + ibucket;
             }
-            else if(iprobe > dist_from_initial_bucket(ibucket)) {
+            else if(dist_from_init_bucket > dist_from_initial_bucket(ibucket)) {
                 return m_buckets.end();
             }
         }
     }
     
     void rehash_impl(size_type bucket_count) {
-        buckets_container_type old_buckets(round_up_to_power_of_two(bucket_count));
+        GrowthPolicy new_growth_policy(bucket_count);
+        if(bucket_count == this->bucket_count()) {
+            return;
+        }
+        
+        if(bucket_count > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        
+        buckets_container_type old_buckets(bucket_count);
+        
+        using std::swap;
+        swap(static_cast<GrowthPolicy&>(*this), new_growth_policy);
+        
         m_buckets.swap(old_buckets);
         
+        
+        
         this->max_load_factor(m_max_load_factor);
-        m_mask = this->bucket_count() - 1;
+        
         
         
         for(const bucket_entry& old_bucket: old_buckets) {
@@ -864,11 +1091,11 @@ private:
                 continue;
             }
             
-            const auto insert_hash = old_bucket.truncated_hash();
-            const auto insert_index = old_bucket.index();
+            auto insert_hash = old_bucket.truncated_hash();
+            auto insert_index = old_bucket.index();
             
-            for(std::size_t ibucket = bucket_for_hash(insert_hash), iprobe = 0; ; 
-                ibucket = next_probe(ibucket), ++iprobe) 
+            for(std::size_t ibucket = bucket_for_hash(insert_hash), dist_from_init_bucket = 0; ; 
+                ibucket = next_bucket(ibucket), dist_from_init_bucket++) 
             {
                 if(m_buckets[ibucket].empty()) {
                     m_buckets[ibucket].set_index(insert_index);
@@ -877,14 +1104,10 @@ private:
                 }
                 
                 const std::size_t distance = dist_from_initial_bucket(ibucket);
-                if(iprobe > distance) {
-                    insert_with_robin_hood_swap(next_probe(ibucket), distance + 1, 
-                                                m_buckets[ibucket].index(), m_buckets[ibucket].truncated_hash());
-                    
-                    m_buckets[ibucket].set_index(insert_index);
-                    m_buckets[ibucket].set_hash(insert_hash);
-                    
-                    break;
+                if(dist_from_init_bucket > distance) {
+                    swap(insert_index, m_buckets[ibucket].index_ref());
+                    swap(insert_hash, m_buckets[ibucket].truncated_hash_ref());
+                    dist_from_init_bucket = distance;
                 }
             }
         }
@@ -907,9 +1130,9 @@ private:
         tsl_assert(m_buckets[empty_ibucket].empty());
         
         std::size_t previous_ibucket = empty_ibucket;
-        for(std::size_t current_ibucket = next_probe(previous_ibucket); 
+        for(std::size_t current_ibucket = next_bucket(previous_ibucket); 
             !m_buckets[current_ibucket].empty() && dist_from_initial_bucket(current_ibucket) > 0;
-            previous_ibucket = current_ibucket, current_ibucket = next_probe(current_ibucket)) 
+            previous_ibucket = current_ibucket, current_ibucket = next_bucket(current_ibucket)) 
         {
             std::swap(m_buckets[current_ibucket], m_buckets[previous_ibucket]);
         }
@@ -939,10 +1162,6 @@ private:
     
     template<class K>
     size_type erase_impl(const K& key, std::size_t hash) {
-        if(empty()) {
-            return 0;
-        }
-        
         auto it_bucket = find_key(key, hash);
         if(it_bucket != m_buckets.end()) {
             erase_value_from_bucket(it_bucket);
@@ -954,161 +1173,76 @@ private:
         }
     }
     
-    /**
-     * From ibucket, search for an empty bucket to store the insert_index and the insert_hash.
-     * 
-     * If on the way we find a bucket with a value which is further away from its initial bucket
-     * than our current probing, swap the indexes and the hashes and continue the search
-     * for an empty bucket to store this new index and hash while continuing the swapping process.
-     */
-    void insert_with_robin_hood_swap(std::size_t ibucket, std::size_t iprobe, 
-                                     typename bucket_entry::index_type insert_index, 
-                                     typename bucket_entry::truncated_hash_type insert_hash) noexcept
+    
+    void insert_index(std::size_t ibucket, std::size_t dist_from_init_bucket, 
+                      index_type index_insert, truncated_hash_type hash_insert) noexcept
     {
-        while(true) {
-            if(m_buckets[ibucket].empty()) {
-                m_buckets[ibucket].set_index(insert_index);
-                m_buckets[ibucket].set_hash(insert_hash);
-                
-                return;
-            }
-            
+        while(!m_buckets[ibucket].empty()) {
             const std::size_t distance = dist_from_initial_bucket(ibucket);
-            if(iprobe > distance) {
-                const auto tmp_index = m_buckets[ibucket].index();
-                const auto tmp_hash = m_buckets[ibucket].truncated_hash();
+            if(dist_from_init_bucket > distance) {
+                std::swap(index_insert, m_buckets[ibucket].index_ref());
+                std::swap(hash_insert, m_buckets[ibucket].truncated_hash_ref());
                 
-                m_buckets[ibucket].set_index(insert_index);
-                m_buckets[ibucket].set_hash(insert_hash);
-                
-                insert_index = tmp_index;
-                insert_hash = tmp_hash;
-                
-                iprobe = distance;
+                dist_from_init_bucket = distance;
             }
+
             
-            ibucket = next_probe(ibucket);
-            ++iprobe;
+            ibucket = next_bucket(ibucket);
+            dist_from_init_bucket++;
+            
+            if(dist_from_init_bucket > REHASH_ON_HIGH_NB_PROBES__NPROBES &&
+               size() >= m_min_load_factor_rehash_threshold)
+            {
+                // We don't want to grow the map now as we need this method to be noexcept.
+                // Do it on next insert.
+                m_grow_on_next_insert = true;
+            }
         }
+        
+        
+        m_buckets[ibucket].set_index(index_insert);
+        m_buckets[ibucket].set_hash(hash_insert); 
     }
     
     std::size_t dist_from_initial_bucket(std::size_t ibucket) const noexcept {
         const std::size_t initial_bucket = bucket_for_hash(m_buckets[ibucket].truncated_hash());
         
-        // If the bucket is smaller than the initial bucket for the value, there was a wrapping at the end of the 
-        // bucket array due to the modulo.
-        if(ibucket < initial_bucket) {
-            return (bucket_count() + ibucket) - initial_bucket;
-        }
-        else {
+        if(ibucket >= initial_bucket) {
             return ibucket - initial_bucket;
         }
-    }
-
-    template<class K, class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
-    void emplace_back_values_container(K&& /*key*/, P&& value) {
-        m_values.emplace_back(std::forward<P>(value));
-    }
-    
-    template<class K, class... Args>
-    void emplace_back_values_container(K&& key, Args&&... args) {
-        m_values.emplace_back(value_type(std::piecewise_construct, 
-                                    std::forward_as_tuple(std::forward<K>(key)), 
-                                    std::forward_as_tuple(std::forward<Args>(args)...)));
-    }
-    
-    template<class K, class... Args>
-    std::pair<iterator, bool> insert_impl(K&& key, std::size_t hash, Args&&... value) {
-        resize_if_needed(1);
-        
-        for(std::size_t ibucket = bucket_for_hash(hash), iprobe = 0; ; ibucket = next_probe(ibucket), ++iprobe) {
-            if(m_buckets[ibucket].empty()) {
-                emplace_back_values_container(std::forward<K>(key), std::forward<Args>(value)...);
-                m_buckets[ibucket].set_index(m_values.size() - 1);
-                m_buckets[ibucket].set_hash(hash);     
-                
-                return std::make_pair(std::prev(end()), true);
-            }
-            else if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-                    compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
-            {
-                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
-            }
-            else if(rehash_on_high_nb_probes(iprobe)) {
-                return insert_impl(std::forward<K>(key), hash, std::forward<Args>(value)...);
-            }
-            else {
-                const std::size_t distance = dist_from_initial_bucket(ibucket);
-                if(iprobe > distance) {
-                    emplace_back_values_container(std::forward<K>(key), std::forward<Args>(value)...);
-                    
-                    // Propagate the index and the hash of the current bucket to a more far away bucket
-                    // Clear the current bucket so we can use it to insert the key. 
-                    insert_with_robin_hood_swap(next_probe(ibucket), distance + 1, 
-                                                m_buckets[ibucket].index(), m_buckets[ibucket].truncated_hash());
-                        
-                    m_buckets[ibucket].set_index(m_values.size() - 1);
-                    m_buckets[ibucket].set_hash(hash);  
-                    
-                    return std::make_pair(std::prev(end()), true);
-                }
-            }
-        }        
-    }
-    
-    
-    void resize_if_needed(std::size_t delta) {
-        if(size() + delta > m_load_threshold) {
-            if(size() + delta > max_size()) {
-                throw std::length_error("Can't resize, the map would exceed its maxmimum size.");
-            }
-            
-            rehash_impl(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        // If the bucket is smaller than the initial bucket for the value, there was a wrapping at the end of the 
+        // bucket array due to the modulo.
+        else {
+            return (bucket_count() + ibucket) - initial_bucket;
         }
     }
     
-    
-    std::size_t next_probe(std::size_t index) const noexcept {
-        tsl_assert(!m_buckets.empty());
-        return (index + 1) & m_mask;
+    std::size_t next_bucket(std::size_t index) const noexcept {
+        tsl_assert(index < m_buckets.size());
+        
+        index++;
+        return (index < m_buckets.size())?index:0;
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const noexcept {
-        tsl_assert(!m_buckets.empty());
-        return hash & m_mask;
+        return GrowthPolicy::bucket_for_hash(hash);
     }    
     
     std::size_t iterator_to_index(const_iterator it) const noexcept {
         const auto dist = std::distance(cbegin(), it);
         tsl_assert(dist >= 0);
         
-        return static_cast<std::size_t>(dist);
+        return std::size_t(dist);
     }
     
-    // TODO could be faster
-    static std::size_t round_up_to_power_of_two(std::size_t value) noexcept {
-        std::size_t power = 1;
-        while(power < value) {
-            power <<= 1;
-        }
-        
-        return power;
-    }
-    
-public:
-    static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
-    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
-    static const size_type REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
-    
-    
-    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
-    static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
-    
-    bool rehash_on_high_nb_probes(std::size_t nb_probes) {
-        if(nb_probes >= REHASH_ON_HIGH_NB_PROBES__NPROBES && 
-           size() >= m_min_load_factor_rehash_threshold) 
-        {
-            rehash_impl(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+    /**
+     * Return true if the map has been rehashed.
+     */
+    bool grow_on_high_load() {
+        if(m_grow_on_next_insert || size() + 1 > m_load_threshold) {
+            rehash_impl(GrowthPolicy::next_bucket_count());
+            m_grow_on_next_insert = false;
+            
             return true;
         }
         else {
@@ -1116,12 +1250,18 @@ public:
         }
     }
     
+public:
+    static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
+    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
+    
+    static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
+    static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
+    
 private:
     buckets_container_type m_buckets;
     values_container_type m_values;
     
-    std::size_t m_mask;
-    
+    bool m_grow_on_next_insert;
     float m_max_load_factor;
     size_type m_load_threshold;
     size_type m_min_load_factor_rehash_threshold;
@@ -1132,11 +1272,11 @@ private:
 
 
 /**
- * Implementation of an hash map using open adressing with robin hood with backshift delete to resolve collision.
+ * Implementation of an hash map using open adressing with robin hood with backshift delete to resolve collisions.
  * 
  * The particularity of the hash map is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
- * The used container is defined by ValueTypeContainer, by default a std::deque is used (faster on rehash) but
+ * The used container is defined by ValueTypeContainer, by default a std::deque is used (grow faster) but
  * a std::vector may be used. In this case the map provides a 'data()' method which give a direct access 
  * to the memory used to store the values (which can be usefull to communicate with C API's).
  * 
@@ -1155,7 +1295,8 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<std::pair<Key, T>>,
-         class ValueTypeContainer = std::deque<std::pair<Key, T>, Allocator>>
+         class ValueTypeContainer = std::deque<std::pair<Key, T>, Allocator>,
+         class GrowthPolicy = tsl::power_of_two_growth_policy_om<2>>
 class ordered_map {
 private:
     template<typename U>
@@ -1188,7 +1329,7 @@ private:
     };
     
     using ht = detail_ordered_hash::ordered_hash<std::pair<Key, T>, KeySelect, ValueSelect,
-                                                 Hash, KeyEqual, Allocator, ValueTypeContainer>;
+                                                 Hash, KeyEqual, Allocator, ValueTypeContainer, GrowthPolicy>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1863,11 +2004,11 @@ private:
 
 
 /**
- * Implementation of an hash set using open adressing with robin hood with backshift delete to resolve collision.
+ * Implementation of an hash set using open adressing with robin hood with backshift delete to resolve collisions.
  * 
  * The particularity of the hash set is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
- * The used container is defined by ValueTypeContainer, by default a std::deque is used (faster on rehash) but
+ * The used container is defined by ValueTypeContainer, by default a std::deque is used (grow faster) but
  * a std::vector may be used. In this case the set provides a 'data()' method which give a direct access 
  * to the memory used to store the values (which can be usefull to communicate with C API's).
  * 
@@ -1885,7 +2026,8 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<Key>,
-         class ValueTypeContainer = std::deque<Key, Allocator>>
+         class ValueTypeContainer = std::deque<Key, Allocator>,
+         class GrowthPolicy = tsl::power_of_two_growth_policy_om<2>>
 class ordered_set {
 private:
     template<typename U>
@@ -1905,7 +2047,7 @@ private:
     };
     
     using ht = detail_ordered_hash::ordered_hash<Key, KeySelect, void,
-                                                 Hash, KeyEqual, Allocator, ValueTypeContainer>;
+                                                 Hash, KeyEqual, Allocator, ValueTypeContainer, GrowthPolicy>;
             
 public:
     using key_type = typename ht::key_type;
