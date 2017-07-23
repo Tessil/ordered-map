@@ -751,10 +751,10 @@ public:
         swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
         swap(m_buckets, other.m_buckets);
         swap(m_values, other.m_values);
+        swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
         swap(m_min_load_factor_rehash_threshold, other.m_min_load_factor_rehash_threshold);
-        swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
     }
     
         
@@ -1260,10 +1260,10 @@ private:
     buckets_container_type m_buckets;
     values_container_type m_values;
     
+    bool m_grow_on_next_insert;
     float m_max_load_factor;
     size_type m_load_threshold;
     size_type m_min_load_factor_rehash_threshold;
-    bool m_grow_on_next_insert;
 };
 
 
