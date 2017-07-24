@@ -613,7 +613,7 @@ public:
             tsl_assert(m_load_threshold >= size());
             
             if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
-                reserve(size() + (std::size_t(nb_elements_insert) - nb_free_buckets));
+                reserve(size() + std::size_t(nb_elements_insert));
             }
         }
         
