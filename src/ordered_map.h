@@ -872,7 +872,8 @@ public:
      *  Hash policy 
      */
     float load_factor() const {
-        return float(size())/float(bucket_count());
+        tsl_assert(bucket_count() != 0);
+        return size()/float(bucket_count());
     }
     
     float max_load_factor() const {
@@ -881,19 +882,19 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
+        m_load_threshold = size_type(bucket_count()*m_max_load_factor);
         m_min_load_factor_rehash_threshold = size_type(bucket_count()*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR);
     }
     
     void rehash(size_type count) {
-        count = std::max(count, size_type(std::ceil(float(size())/max_load_factor())));
+        count = std::max(count, size_type(std::ceil(size()/max_load_factor())));
         rehash_impl(count);
     }
     
     void reserve(size_type count) {
         reserve_space_for_values(count);
         
-        count = size_type(std::ceil(float(count)/max_load_factor()));
+        count = size_type(std::ceil(count/max_load_factor()));
         rehash(count);
     }
     
@@ -1239,7 +1240,7 @@ private:
      * Return true if the map has been rehashed.
      */
     bool grow_on_high_load() {
-        if(m_grow_on_next_insert || size() + 1 > m_load_threshold) {
+        if(m_grow_on_next_insert || size() >= m_load_threshold) {
             rehash_impl(GrowthPolicy::next_bucket_count());
             m_grow_on_next_insert = false;
             
