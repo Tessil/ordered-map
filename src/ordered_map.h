@@ -481,6 +481,8 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
+        // Can't directly construct with the appropriate size in the initializer 
+        // as m_buckets(bucket_count, alloc) is not supported by 4.8
         m_buckets.resize(bucket_count);
         this->max_load_factor(max_load_factor);
         
@@ -574,33 +576,7 @@ public:
     
     template<typename P>
     std::pair<iterator, bool> insert(P&& value) {
-        const std::size_t hash = hash_key(KeySelect()(value));
-        
-        std::size_t ibucket = bucket_for_hash(hash); 
-        std::size_t dist_from_init_bucket = 0;
-        
-        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
-            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(KeySelect()(value), KeySelect()(m_values[m_buckets[ibucket].index()]))) 
-            {
-                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
-            }
-            
-            ibucket = next_bucket(ibucket);
-            dist_from_init_bucket++;
-        }
-        
-        
-        if(grow_on_high_load()) {
-            ibucket = bucket_for_hash(hash);
-            dist_from_init_bucket = 0;
-        }
-        
-        m_values.emplace_back(std::forward<P>(value));
-        insert_index(ibucket, dist_from_init_bucket, 
-                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
-        
-        return std::make_pair(std::prev(end()), true);
+        return insert_impl(KeySelect()(value), std::forward<P>(value));
     }
     
     template<class InputIt>
@@ -639,36 +615,9 @@ public:
     
     template<class K, class... Args>
     std::pair<iterator, bool> try_emplace(K&& key, Args&&... value_args) {
-        const std::size_t hash = hash_key(key);
-        
-        std::size_t ibucket = bucket_for_hash(hash); 
-        std::size_t dist_from_init_bucket = 0;
-        
-        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
-            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
-            {
-                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
-            }
-            
-            ibucket = next_bucket(ibucket);
-            dist_from_init_bucket++;
-        }
-        
-        
-        if(grow_on_high_load()) {
-            ibucket = bucket_for_hash(hash);
-            dist_from_init_bucket = 0;
-        }
-        
-        m_values.emplace_back(std::piecewise_construct, 
-                              std::forward_as_tuple(std::forward<K>(key)), 
-                              std::forward_as_tuple(std::forward<Args>(value_args)...));
-                              
-        insert_index(ibucket, dist_from_init_bucket, 
-                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
-        
-        return std::make_pair(std::prev(end()), true);        
+        return insert_impl(key, std::piecewise_construct, 
+                                std::forward_as_tuple(std::forward<K>(key)), 
+                                std::forward_as_tuple(std::forward<Args>(value_args)...));     
     }
     
     iterator erase(iterator pos) {
@@ -1173,6 +1122,36 @@ private:
         }
     }
     
+    template<class K, class... Args>
+    std::pair<iterator, bool> insert_impl(const K& key, Args&&... value_type_args) {
+        const std::size_t hash = hash_key(key);
+        
+        std::size_t ibucket = bucket_for_hash(hash); 
+        std::size_t dist_from_init_bucket = 0;
+        
+        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+            {
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+            }
+            
+            ibucket = next_bucket(ibucket);
+            dist_from_init_bucket++;
+        }
+        
+        
+        if(grow_on_high_load()) {
+            ibucket = bucket_for_hash(hash);
+            dist_from_init_bucket = 0;
+        }
+        
+        m_values.emplace_back(std::forward<Args>(value_type_args)...);
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
+        
+        return std::make_pair(std::prev(end()), true);
+    }
     
     void insert_index(std::size_t ibucket, std::size_t dist_from_init_bucket, 
                       index_type index_insert, truncated_hash_type hash_insert) noexcept
