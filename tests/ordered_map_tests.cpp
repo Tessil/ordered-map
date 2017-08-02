@@ -16,10 +16,7 @@ using test_types = boost::mpl::list<tsl::ordered_map<int64_t, int64_t>,
                                                      std::allocator<std::pair<int64_t, int64_t>>, 
                                                      std::vector<std::pair<int64_t, int64_t>>>,
                                     tsl::ordered_map<int64_t, int64_t, mod_hash<9>>,
-                                    tsl::ordered_map<std::string, self_reference_member_test, mod_hash<9>>,
                                     tsl::ordered_map<move_only_test, move_only_test, mod_hash<9>>,
-                                    tsl::ordered_map<self_reference_member_test, self_reference_member_test, 
-                                                     mod_hash<9>>,
                                     tsl::ordered_map<move_only_test, move_only_test, 
                                                      mod_hash<9>, std::equal_to<move_only_test>,
                                                      std::allocator<std::pair<move_only_test, move_only_test>>,
@@ -52,7 +49,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     
     for(size_t i = 0; i < nb_values; i++) {
         const size_t insert_val = (i%2 == 0)?i:nb_values + i;
-        std::tie(it, inserted) = map.insert({utils::get_key<key_t>(insert_val), utils::get_value<value_t>(insert_val)});
+        std::tie(it, inserted) = map.insert({utils::get_key<key_t>(insert_val), utils::get_value<value_t>(insert_val + 1)});
         
         BOOST_CHECK_EQUAL(it->first, utils::get_key<key_t>(insert_val));
         BOOST_CHECK_EQUAL(it->second, utils::get_value<value_t>(insert_val));
@@ -162,6 +159,37 @@ BOOST_AUTO_TEST_CASE(test_try_emplace) {
     BOOST_CHECK_EQUAL(it->first, 10);
     BOOST_CHECK_EQUAL(it->second, move_only_test(1));
     BOOST_CHECK(!inserted);
+}
+
+BOOST_AUTO_TEST_CASE(test_try_emplace_2) {
+    tsl::ordered_map<std::string, move_only_test> map;
+    tsl::ordered_map<std::string, move_only_test>::iterator it;
+    bool inserted;
+    
+    const std::size_t nb_values = 1000;
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.try_emplace(utils::get_key<std::string>(i), i);
+        
+        BOOST_CHECK_EQUAL(it->first, utils::get_key<std::string>(i));
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i));
+        BOOST_CHECK(inserted);
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.try_emplace(utils::get_key<std::string>(i), i+1);
+        
+        BOOST_CHECK_EQUAL(it->first, utils::get_key<std::string>(i));
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i));
+        BOOST_CHECK(!inserted);
+    }
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        it = map.find(utils::get_key<std::string>(i));
+        
+        BOOST_CHECK_EQUAL(it->first, utils::get_key<std::string>(i));
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i));
+    }
 }
 
 BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
@@ -556,74 +584,111 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
 
 
 /**
- * operator=
+ * operator=(std::initializer_list)
  */
 BOOST_AUTO_TEST_CASE(test_assign_operator) {
-    tsl::ordered_map<int64_t, int64_t> map = {{1, 10}, {2, 20}, {3, 30}};
-    BOOST_CHECK_EQUAL(map.size(), 3);
-    
-    map = {{4, 40}, {5, 50}};
+    tsl::ordered_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
     BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK_EQUAL(map.at(4), 40);
+    
+    map = {{1, 3}, {2, 4}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK_EQUAL(map.at(1), 3);
+    BOOST_CHECK_EQUAL(map.at(2), 4);
+    BOOST_CHECK(map.find(0) == map.end());
 }
 
 
-BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
-    tsl::ordered_map<int, int> map = {{2, 1}, {1, 1}, {3, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 3);
+/**
+ * move/copy constructor/operator
+ */
+BOOST_AUTO_TEST_CASE(test_move_constructor) {
+    // insert x values in map, move map into map_move, check map and map_move, 
+    // insert additional values in map_move, check map_move
+    using HMap = tsl::ordered_map<std::string, move_only_test>;
     
-    tsl::ordered_map<int, int> map_move(std::move(map));
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map_move(std::move(map));
+    
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
+    BOOST_CHECK(map == (HMap()));
+
+    
+    
+    for(std::size_t i = nb_values; i < nb_values*2; i++) {
+        map_move.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map_move.size(), nb_values*2);
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
+}
+
+
+BOOST_AUTO_TEST_CASE(test_move_operator) {
+    // insert x values in map, move map into map_move, check map and map_move, 
+    // insert additional values in map_move, check map_move
+    using HMap = tsl::ordered_map<std::string, move_only_test>;
+    
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map_move = std::move(map);
+    
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
+    BOOST_CHECK(map == (HMap()));
+
+    
+    
+    for(std::size_t i = nb_values; i < nb_values*2; i++) {
+        map_move.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map_move.size(), nb_values*2);
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
+}
+
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
+    using HMap = tsl::ordered_map<std::string, std::string>;
+    
+    HMap map = {{"Key1", "Value1"}, {"Key2", "Value2"}, {"Key3", "Value3"}};
+    HMap map_move(std::move(map));
+    
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (tsl::ordered_map<int, int>({{2, 1}, {1, 1}, {3, 1}})));
-    BOOST_CHECK(map == (tsl::ordered_map<int, int>()));
-    
-    
-    for(int i = 4; i <= 100; i++) {
-        map_move.insert({i, 1});
-    }
-    BOOST_CHECK_EQUAL(map_move.size(), 100);
-    
-    
-    map = {{4, 1}, {5, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (tsl::ordered_map<int, int>({{4, 1}, {5, 1}})));
+    map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
+    BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
-    tsl::ordered_map<int, int> map = {{2, 1}, {1, 1}, {3, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 3);
+    using HMap = tsl::ordered_map<std::string, std::string>;
     
-    tsl::ordered_map<int, int> map_move = std::move(map);
+    HMap map = {{"Key1", "Value1"}, {"Key2", "Value2"}, {"Key3", "Value3"}};
+    HMap map_move = std::move(map);
+    
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (tsl::ordered_map<int, int>({{2, 1}, {1, 1}, {3, 1}})));
-    BOOST_CHECK(map == (tsl::ordered_map<int, int>()));
-    
-    
-    for(int i = 4; i <= 100; i++) {
-        map_move.insert({i, 1});
-    }
-    BOOST_CHECK_EQUAL(map_move.size(), 100);
-    
-    
-    map = {{4, 1}, {5, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (tsl::ordered_map<int, int>({{4, 1}, {5, 1}})));
+    map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
+    BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
-
-BOOST_AUTO_TEST_CASE(test_copy) {
-    tsl::ordered_map<int64_t, int64_t> map = {{2, 20}, {1, 10}, {3, 30}};
-    tsl::ordered_map<int64_t, int64_t> map2 = map;
-    tsl::ordered_map<int64_t, int64_t> map3;
-    map3 = map;
+BOOST_AUTO_TEST_CASE(test_copy_constructor_operator) {
+    using HMap = tsl::ordered_map<std::string, std::string, mod_hash<9>>;
     
-    BOOST_CHECK(map == map2);
-    BOOST_CHECK(map == map3);
-    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    
+    HMap map_copy = map;
+    HMap map_copy2(map);
+    HMap map_copy3;
+    map_copy3 = map;
+    
+    BOOST_CHECK(map == map_copy);
+    map.clear();
+    
+    BOOST_CHECK(map_copy == map_copy2);
+    BOOST_CHECK(map_copy == map_copy3);
 }
 
 
@@ -798,9 +863,15 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     BOOST_CHECK_THROW(map.at(addr_unknown), std::out_of_range);
     
     
+    
+    BOOST_REQUIRE(map.find(addr1) != map.end());
     BOOST_CHECK_EQUAL(*map.find(addr1)->first, 1);
+    
+    BOOST_REQUIRE(map.find(addr2) != map.end());
     BOOST_CHECK_EQUAL(*map.find(addr2)->first, 2);
+    
     BOOST_CHECK(map.find(addr_unknown) == map.end());
+    
     
     
     BOOST_CHECK_EQUAL(map.count(addr1), 1);

@@ -18,8 +18,7 @@ using test_types = boost::mpl::list<tsl::ordered_set<int64_t>,
                                                      std::vector<int64_t>>, 
                                     tsl::ordered_set<int64_t, mod_hash<9>>, 
                                     tsl::ordered_set<std::string, mod_hash<9>>, 
-                                    tsl::ordered_set<move_only_test, mod_hash<9>>, 
-                                    tsl::ordered_set<self_reference_member_test, mod_hash<9>>
+                                    tsl::ordered_set<move_only_test, mod_hash<9>>
                                     >;
 
 /**
