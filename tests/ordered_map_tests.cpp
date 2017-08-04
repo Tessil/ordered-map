@@ -15,13 +15,9 @@ using test_types = boost::mpl::list<tsl::ordered_map<int64_t, int64_t>,
                                     tsl::ordered_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
                                                      std::allocator<std::pair<int64_t, int64_t>>, 
                                                      std::vector<std::pair<int64_t, int64_t>>>,
-                                    tsl::ordered_map<int64_t, int64_t, mod_hash<9>>,
-                                    tsl::ordered_map<move_only_test, move_only_test, mod_hash<9>>,
-                                    tsl::ordered_map<move_only_test, move_only_test, 
-                                                     mod_hash<9>, std::equal_to<move_only_test>,
-                                                     std::allocator<std::pair<move_only_test, move_only_test>>,
-                                                     std::deque<std::pair<move_only_test, move_only_test>>,
-                                                     tsl::prime_growth_policy_om>
+                                    tsl::ordered_map<std::string, std::string>,
+                                    tsl::ordered_map<std::string, std::string, mod_hash<9>>,
+                                    tsl::ordered_map<move_only_test, move_only_test, mod_hash<9>>
                                     >;
 
 /**

@@ -26,7 +26,6 @@
 
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cmath>
 #include <climits>
@@ -63,153 +62,6 @@
 #endif
 
 namespace tsl {
-
-
-/**
- * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
- * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
- */
-template<std::size_t GrowthFactor>
-class power_of_two_growth_policy_om {
-public:
-    /**
-     * Called on map creation and rehash. The number of buckets requested is passed by parameter.
-     * This number is a minimum, the policy may update this value with a higher value if needed.
-     */
-    power_of_two_growth_policy_om(std::size_t& min_bucket_count_in_out) {
-        if(min_bucket_count_in_out > max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
-        }
-        
-        static_assert(MIN_BUCKETS_SIZE > 0, "");
-        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
-        
-        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
-        min_bucket_count_in_out = round_up_to_power_of_two(min_bucket_count_in_out);
-        m_mask = min_bucket_count_in_out - 1;
-    }
-    
-    /**
-     * Return the bucket [0, bucket_count()) to which the hash belongs.
-     */
-    std::size_t bucket_for_hash(std::size_t hash) const {
-        return hash & m_mask;
-    }
-    
-    /**
-     * Return the bucket count to uses when the bucket array grows on rehash.
-     */
-    std::size_t next_bucket_count() const {
-        if((m_mask + 1) > max_bucket_count() / GrowthFactor) {
-            throw std::length_error("The map exceeds its maxmimum size.");
-        }
-        
-        return (m_mask + 1) * GrowthFactor;
-    }
-    
-    /**
-     * Return the maximum number of buckets supported by the policy.
-     */
-    std::size_t max_bucket_count() const {
-        return std::numeric_limits<std::size_t>::max() / GrowthFactor + 1;
-    }
-    
-private:
-    static std::size_t round_up_to_power_of_two(std::size_t value) {
-        if(value == 0) {
-            return 1;
-        }
-        
-        if(is_power_of_two(value)) {
-            return value;
-        }
-            
-        --value;
-        for(std::size_t i = 1; i < sizeof(std::size_t) * CHAR_BIT; i *= 2) {
-            value |= value >> i;
-        }
-        
-        return value + 1;
-    }
-    
-    static constexpr bool is_power_of_two(std::size_t value) {
-        return value != 0 && (value & (value - 1)) == 0;
-    }
-    
-private:
-    static const std::size_t MIN_BUCKETS_SIZE = 2;
-    
-    std::size_t m_mask;
-};
-
-
-namespace detail_ordered_hash {
-
-static constexpr const std::array<std::size_t, 39> PRIMES = {{
-    5ul, 17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
-    3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 1572869ul, 3145739ul, 
-    6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 402653189ul, 805306457ul, 
-    1610612741ul, 3221225473ul, 4294967291ul
-}};
-
-template<unsigned int IPrime>
-static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
-
-// MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
-// compiler can optimize the modulo code better with a constant known at the compilation.
-static constexpr const std::array<std::size_t(*)(std::size_t), 39> MOD_PRIME = {{ 
-    &mod<0>, &mod<1>, &mod<2>, &mod<3>, &mod<4>, &mod<5>, &mod<6>, &mod<7>, &mod<8>, &mod<9>, &mod<10>, 
-    &mod<11>, &mod<12>, &mod<13>, &mod<14>, &mod<15>, &mod<16>, &mod<17>, &mod<18>, &mod<19>, &mod<20>, 
-    &mod<21>, &mod<22>, &mod<23>, &mod<24>, &mod<25>, &mod<26>, &mod<27>, &mod<28>, &mod<29>, &mod<30>, 
-    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> , &mod<38>
-}};
-
-}
-
-/**
- * Grow the map by using prime numbers as size. Slower than tsl::power_of_two_growth_policy in general 
- * but will probably distribute the values around better in the buckets with a poor hash function.
- */
-class prime_growth_policy_om {
-public:
-    prime_growth_policy_om(std::size_t& min_bucket_count_in_out) {
-        auto it_prime = std::lower_bound(tsl::detail_ordered_hash::PRIMES.begin(), 
-                                         tsl::detail_ordered_hash::PRIMES.end(), min_bucket_count_in_out);
-        if(it_prime == tsl::detail_ordered_hash::PRIMES.end()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
-        }
-        
-        m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_ordered_hash::PRIMES.begin(), it_prime));
-        min_bucket_count_in_out = *it_prime;
-    }
-    
-    std::size_t bucket_for_hash(std::size_t hash) const {
-        return bucket_for_hash_iprime(hash, m_iprime);
-    }
-    
-    std::size_t next_bucket_count() const {
-        if(m_iprime + 1 >= tsl::detail_ordered_hash::PRIMES.size()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
-        }
-        
-        return tsl::detail_ordered_hash::PRIMES[m_iprime + 1];
-    }   
-    
-    std::size_t max_bucket_count() const {
-        return tsl::detail_ordered_hash::PRIMES.back();
-    }
-    
-private:  
-    std::size_t bucket_for_hash_iprime(std::size_t hash, unsigned int iprime) const {
-        tsl_assert(iprime < tsl::detail_ordered_hash::MOD_PRIME.size());
-        return tsl::detail_ordered_hash::MOD_PRIME[iprime](hash);
-    }
-    
-private:
-    unsigned int m_iprime;
-};
-
-
 
 
 namespace detail_ordered_hash {
@@ -327,9 +179,8 @@ template<class ValueType,
          class Hash,
          class KeyEqual,
          class Allocator,
-         class ValueTypeContainer,
-         class GrowthPolicy>
-class ordered_hash: private Hash, private KeyEqual, private GrowthPolicy {
+         class ValueTypeContainer>
+class ordered_hash: private Hash, private KeyEqual {
 private:
     template<typename U>
     using has_mapped_type = typename std::integral_constant<bool, !std::is_same<U, void>::value>;
@@ -472,21 +323,22 @@ public:
                  const Hash& hash,
                  const KeyEqual& equal,
                  const Allocator& alloc,
-                 float max_load_factor) : Hash(hash), KeyEqual(equal), 
-                                          // We need a non-zero size
-                                          GrowthPolicy(bucket_count == 0?++bucket_count:bucket_count), 
-                                          m_buckets(alloc), m_values(alloc), m_grow_on_next_insert(false)
+                 float max_load_factor) : Hash(hash), KeyEqual(equal), m_buckets(alloc), 
+                                          m_values(alloc), m_grow_on_next_insert(false)
     {
+        bucket_count = round_up_to_power_of_two(bucket_count);
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
+        tsl_assert(bucket_count > 0);
+        
         
         // Can't directly construct with the appropriate size in the initializer 
-        // as m_buckets(bucket_count, alloc) is not supported by 4.8
+        // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
         m_buckets.resize(bucket_count);
-        this->max_load_factor(max_load_factor);
+        m_mask = bucket_count - 1; 
         
-        tsl_assert(bucket_count > 0);
+        this->max_load_factor(max_load_factor);
     }
     
     allocator_type get_allocator() const {
@@ -585,11 +437,11 @@ public:
                            typename std::iterator_traits<InputIt>::iterator_category>::value) 
         {
             const auto nb_elements_insert = std::distance(first, last);
-            const std::size_t nb_free_buckets = m_load_threshold - size();
+            const size_type nb_free_buckets = m_load_threshold - size();
             tsl_assert(m_load_threshold >= size());
             
-            if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
-                reserve(size() + std::size_t(nb_elements_insert));
+            if(nb_elements_insert > 0 && nb_free_buckets < size_type(nb_elements_insert)) {
+                reserve(size() + size_type(nb_elements_insert));
             }
         }
         
@@ -697,8 +549,8 @@ public:
         
         swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
-        swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
         swap(m_buckets, other.m_buckets);
+        swap(m_mask, other.m_mask);
         swap(m_values, other.m_values);
         swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
         swap(m_max_load_factor, other.m_max_load_factor);
@@ -814,7 +666,7 @@ public:
     }
     
     size_type max_bucket_count() const {
-        return std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
+        return m_buckets.max_size();
     }    
     
     /*
@@ -1012,7 +864,9 @@ private:
     }
     
     void rehash_impl(size_type bucket_count) {
-        GrowthPolicy new_growth_policy(bucket_count);
+        bucket_count = round_up_to_power_of_two(bucket_count);
+        tsl_assert(bucket_count > 0);
+        
         if(bucket_count == this->bucket_count()) {
             return;
         }
@@ -1023,14 +877,9 @@ private:
         
         
         buckets_container_type old_buckets(bucket_count);
-        
-        using std::swap;
-        swap(static_cast<GrowthPolicy&>(*this), new_growth_policy);
-        
         m_buckets.swap(old_buckets);
         
-        
-        
+        m_mask = bucket_count - 1;
         this->max_load_factor(m_max_load_factor);
         
         
@@ -1054,8 +903,8 @@ private:
                 
                 const std::size_t distance = dist_from_initial_bucket(ibucket);
                 if(dist_from_init_bucket > distance) {
-                    swap(insert_index, m_buckets[ibucket].index_ref());
-                    swap(insert_hash, m_buckets[ibucket].truncated_hash_ref());
+                    std::swap(insert_index, m_buckets[ibucket].index_ref());
+                    std::swap(insert_hash, m_buckets[ibucket].truncated_hash_ref());
                     dist_from_init_bucket = distance;
                 }
             }
@@ -1204,7 +1053,7 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const noexcept {
-        return GrowthPolicy::bucket_for_hash(hash);
+        return hash & m_mask;
     }    
     
     std::size_t iterator_to_index(const_iterator it) const noexcept {
@@ -1219,7 +1068,7 @@ private:
      */
     bool grow_on_high_load() {
         if(m_grow_on_next_insert || size() + 1 > m_load_threshold) {
-            rehash_impl(GrowthPolicy::next_bucket_count());
+            rehash_impl(bucket_count() * 2);
             m_grow_on_next_insert = false;
             
             return true;
@@ -1228,6 +1077,28 @@ private:
             return false;
         }
     }
+    
+    static std::size_t round_up_to_power_of_two(std::size_t value) {
+        if(is_power_of_two(value)) {
+            return value;
+        }
+        
+        if(value == 0) {
+            return 1;
+        }
+        
+        --value;
+        for(std::size_t i = 1; i < sizeof(std::size_t) * CHAR_BIT; i *= 2) {
+            value |= value >> i;
+        }
+        
+        return value + 1;
+    }
+    
+    static constexpr bool is_power_of_two(std::size_t value) {
+        return value != 0 && (value & (value - 1)) == 0;
+    }
+
     
 public:
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
@@ -1238,6 +1109,8 @@ public:
     
 private:
     buckets_container_type m_buckets;
+    size_type m_mask;
+    
     values_container_type m_values;
     
     bool m_grow_on_next_insert;
@@ -1274,8 +1147,7 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<std::pair<Key, T>>,
-         class ValueTypeContainer = std::deque<std::pair<Key, T>, Allocator>,
-         class GrowthPolicy = tsl::power_of_two_growth_policy_om<2>>
+         class ValueTypeContainer = std::deque<std::pair<Key, T>, Allocator>>
 class ordered_map {
 private:
     template<typename U>
@@ -1308,7 +1180,7 @@ private:
     };
     
     using ht = detail_ordered_hash::ordered_hash<std::pair<Key, T>, KeySelect, ValueSelect,
-                                                 Hash, KeyEqual, Allocator, ValueTypeContainer, GrowthPolicy>;
+                                                 Hash, KeyEqual, Allocator, ValueTypeContainer>;
     
 public:
     using key_type = typename ht::key_type;
@@ -2005,8 +1877,7 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<Key>,
-         class ValueTypeContainer = std::deque<Key, Allocator>,
-         class GrowthPolicy = tsl::power_of_two_growth_policy_om<2>>
+         class ValueTypeContainer = std::deque<Key, Allocator>>
 class ordered_set {
 private:
     template<typename U>
@@ -2026,7 +1897,7 @@ private:
     };
     
     using ht = detail_ordered_hash::ordered_hash<Key, KeySelect, void,
-                                                 Hash, KeyEqual, Allocator, ValueTypeContainer, GrowthPolicy>;
+                                                 Hash, KeyEqual, Allocator, ValueTypeContainer>;
             
 public:
     using key_type = typename ht::key_type;
