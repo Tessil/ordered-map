@@ -995,6 +995,10 @@ private:
             dist_from_init_bucket++;
         }
         
+        if(size() >= max_size()) {
+            throw std::length_error("We reached the maximum size for the hash table.");
+        }
+        
         
         if(grow_on_high_load()) {
             ibucket = bucket_for_hash(hash);
