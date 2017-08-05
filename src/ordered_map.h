@@ -97,19 +97,19 @@ struct is_vector<T, typename std::enable_if<
  */
 class bucket_entry {
 public:
-    using index_type = std::uint32_t;
-    using truncated_hash_type = std::uint32_t;
+    using index_type = std::uint_least32_t;
+    using truncated_hash_type = std::uint_least32_t;
     
     
-    bucket_entry() noexcept : m_index(EMPTY_INDEX), m_hash(0) {
+    bucket_entry() noexcept : m_index(EMPTY_MARKER_INDEX), m_hash(0) {
     }
     
     bool empty() const noexcept {
-        return m_index == EMPTY_INDEX;
+        return m_index == EMPTY_MARKER_INDEX;
     }
     
     void clear() noexcept {
-        m_index = EMPTY_INDEX;
+        m_index = EMPTY_MARKER_INDEX;
     }
     
     index_type index() const noexcept {
@@ -153,7 +153,7 @@ public:
     }
     
 private:
-    static const index_type EMPTY_INDEX = std::numeric_limits<index_type>::max();
+    static const index_type EMPTY_MARKER_INDEX = std::numeric_limits<index_type>::max();
     static const std::size_t NB_RESERVED_INDEXES = 1;
     
     index_type m_index;
@@ -260,8 +260,8 @@ public:
         ordered_iterator& operator++() { ++m_iterator; return *this; }
         ordered_iterator& operator--() { --m_iterator; return *this; }
         
-        ordered_iterator operator++(int) { ordered_iterator tmp(*this); ++*this; return tmp; }
-        ordered_iterator operator--(int) { ordered_iterator tmp(*this); --*this; return tmp; }
+        ordered_iterator operator++(int) { ordered_iterator tmp(*this); ++(*this); return tmp; }
+        ordered_iterator operator--(int) { ordered_iterator tmp(*this); --(*this); return tmp; }
         
         reference operator[](difference_type n) const { return m_iterator[n]; }
         
@@ -411,7 +411,7 @@ public:
     }
     
     size_type max_size() const noexcept {
-        return bucket_entry::max_size();
+        return std::min(bucket_entry::max_size(), m_values.max_size());
     }
     
 
@@ -496,8 +496,8 @@ public:
             return mutable_iterator(first);
         }
         
-        tsl_assert(std::distance(first, last) > 0 && std::distance(cbegin(), first) >= 0);
-        const std::size_t start_index = std::size_t(std::distance(cbegin(), first));
+        tsl_assert(std::distance(first, last) > 0);
+        const std::size_t start_index = iterator_to_index(first);
         const std::size_t nb_values = std::size_t(std::distance(first, last));
         const std::size_t end_index = start_index + nb_values;
         
@@ -683,7 +683,9 @@ public:
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
         m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
-        m_min_load_factor_rehash_threshold = size_type(bucket_count()*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR);
+        m_min_load_factor_rehash_threshold = size_type(
+                                                 float(bucket_count())*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR
+                                             );
     }
     
     void rehash(size_type count) {
@@ -766,7 +768,10 @@ public:
         const std::size_t index_erase = iterator_to_index(pos);
         unordered_erase(pos.key());
         
-        // One element was deleted, index_erase now point to the next element as the elements were shifted
+        /*
+         * One element was deleted, index_erase now points to the next element as the elements after
+         * the deleted value were shifted to the left in m_values (will be end() if we deleted the last element).
+         */
         return begin() + index_erase;
     }
     
@@ -881,6 +886,7 @@ private:
         
         m_mask = bucket_count - 1;
         this->max_load_factor(m_max_load_factor);
+        m_grow_on_next_insert = false;
         
         
         
@@ -1067,7 +1073,7 @@ private:
      * Return true if the map has been rehashed.
      */
     bool grow_on_high_load() {
-        if(m_grow_on_next_insert || size() + 1 > m_load_threshold) {
+        if(m_grow_on_next_insert || size() >= m_load_threshold) {
             rehash_impl(bucket_count() * 2);
             m_grow_on_next_insert = false;
             
@@ -1103,7 +1109,8 @@ private:
 public:
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
-    
+
+private:    
     static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
     static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
     
