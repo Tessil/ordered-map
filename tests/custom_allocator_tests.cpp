@@ -2,6 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -49,7 +50,7 @@ public:
     pointer allocate(size_type n, const void* /*hint*/ = 0) {
         nb_custom_allocs++;
         
-        pointer ptr = static_cast<pointer>(malloc(n * sizeof(T)));
+        pointer ptr = static_cast<pointer>(std::malloc(n * sizeof(T)));
         if(ptr == nullptr) {
             throw std::bad_alloc();
         }
@@ -58,7 +59,7 @@ public:
     }
 
     void deallocate(T* p, size_type /*n*/) {
-        free(p);
+        std::free(p);
     }
     
     size_type max_size() const noexcept {
@@ -88,7 +89,9 @@ bool operator!=(const custom_allocator<T>&, const custom_allocator<U>&) {
 
 
         
-//TODO Avoid overloading new to check number of global new
+//TODO Avoid overloading new to check number of global new. 
+// How can we check we only go through the allocator for allocation?
+
 // static std::size_t nb_global_new = 0;
 // void* operator new(std::size_t sz) {
 //     nb_global_new++;
