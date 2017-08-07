@@ -509,8 +509,6 @@ public:
 #endif
         
         /*
-         * TODO optimize
-         * 
          * Mark the buckets corresponding to the values as empty and do a backward shift.
          * 
          * Also, the erase operation on m_values has shifted all the values on the right of last.m_iterator.
@@ -787,13 +785,16 @@ public:
             return 0;
         }
         
-
-        auto it_bucket_last_elem = find_key(KeySelect()(back()), hash_key(KeySelect()(back())));
-        tsl_assert(it_bucket_last_elem != m_buckets.end());
-        tsl_assert(!it_bucket_last_elem->empty());
-        tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
-        
-        if(it_bucket_key != it_bucket_last_elem) {
+        /**
+         * If we are not erasing the last element in m_values, we swap 
+         * the element we are erasing with the last element. We then would 
+         * just have to do a pop_back() in m_values.
+         */
+        if(!compare_keys(key, KeySelect()(back()))) {
+            auto it_bucket_last_elem = find_key(KeySelect()(back()), hash_key(KeySelect()(back())));
+            tsl_assert(it_bucket_last_elem != m_buckets.end());
+            tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
+            
             using std::swap;
             swap(m_values[it_bucket_key->index()], m_values[it_bucket_last_elem->index()]);
             swap(it_bucket_key->index_ref(), it_bucket_last_elem->index_ref());
@@ -947,21 +948,32 @@ private:
         
         m_values.erase(m_values.begin() + it_bucket->index());
         
-        const std::size_t index_deleted = it_bucket->index();
-        
-        // m_values.erase shifted all the values on the right of the erased value, shift the indexes except if
-        // it was the last value
-        if(index_deleted != m_values.size()) {
-            for(auto& bucket: m_buckets) {
-                if(!bucket.empty() && bucket.index() > index_deleted) {
-                    bucket.set_index(bucket.index() - 1);
-                }
-            }
-        }
+        /*
+         * m_values.erase shifted all the values on the right of the erased value, 
+         * shift the indexes by 1 in the buckets array for these values.
+         */
+        if(it_bucket->index() != m_values.size()) {
+            shift_indexes_left_in_buckets(it_bucket->index(), 1);
+        }        
         
         // Mark the bucket as empty and do a backward shift of the values on the right
         it_bucket->clear();
         backward_shift(std::size_t(std::distance(m_buckets.begin(), it_bucket)));
+    }
+    
+    /**
+     * Go through each value from [from_ivalue, m_values.size()) in m_values and for each
+     * bucket corresponding to the value, shift the indexes to the left by delta.
+     */
+    void shift_indexes_left_in_buckets(index_type from_ivalue, index_type delta) noexcept  {
+        for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
+            std::size_t ibucket = bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
+            while(m_buckets[ibucket].index() != ivalue + delta) {
+                ibucket = next_bucket(ibucket);
+            }
+            
+            m_buckets[ibucket].set_index(m_buckets[ibucket].index() - delta);
+        }
     }
     
     template<class K>
