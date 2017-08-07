@@ -538,17 +538,22 @@ public:
          * Also, the erase operation on m_values has shifted all the values on the right of last.m_iterator.
          * Adapt the indexes for these values.
          */
-        for(std::size_t ibucket = 0; ibucket < m_buckets.size(); ibucket++) {
+        std::size_t ibucket = 0;
+        while(ibucket < m_buckets.size()) {
             if(m_buckets[ibucket].empty()) {
-                continue;
+                ibucket++;
             }
-            
-            if(m_buckets[ibucket].index() >= start_index && m_buckets[ibucket].index() < end_index) {
+            else if(m_buckets[ibucket].index() >= start_index && m_buckets[ibucket].index() < end_index) {
                 m_buckets[ibucket].clear();
                 backward_shift(ibucket);
+                // Don't increment ibucket, backward_shift may have replaced current bucket.
             }
             else if(m_buckets[ibucket].index() >= end_index) {
                 m_buckets[ibucket].set_index(index_type(m_buckets[ibucket].index() - nb_values));
+                ibucket++;
+            }
+            else {
+                ibucket++;
             }
         }
         
