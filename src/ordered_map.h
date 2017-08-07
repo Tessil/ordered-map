@@ -71,20 +71,20 @@ struct make_void {
     using type = void;
 };
 
-template <typename T, typename = void>
+template<typename T, typename = void>
 struct has_is_transparent : std::false_type {
 };
 
-template <typename T>
+template<typename T>
 struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
 };
 
 
-template <typename T, typename = void>
+template<typename T, typename = void>
 struct is_vector : std::false_type {
 };
 
-template <typename T>
+template<typename T>
 struct is_vector<T, typename std::enable_if<
                         std::is_same<T, std::vector<typename T::value_type, typename T::allocator_type>>::value
                     >::type> : std::true_type {
@@ -122,10 +122,10 @@ public:
         return m_index;
     }
     
-    void set_index(std::size_t index) noexcept {
+    void set_index(index_type index) noexcept {
         tsl_assert(index <= max_size());
         
-        m_index = index_type(index);
+        m_index = index;
     }
     
     truncated_hash_type truncated_hash() const noexcept {
@@ -224,7 +224,7 @@ public:
                                                     typename values_container_type::iterator>::type;
     
         
-        ordered_iterator(iterator it) noexcept : m_iterator(it) {
+        ordered_iterator(iterator it) noexcept: m_iterator(it) {
         }
         
     public:
@@ -245,12 +245,13 @@ public:
             return KeySelect()(*m_iterator);
         }
 
-        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-        typename std::conditional<
-            is_const, 
-            const typename U::value_type&, 
-            typename U::value_type&>::type value() const
-        {
+        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && is_const>::type* = nullptr>
+        const typename U::value_type& value() const {
+            return U()(*m_iterator);
+        }
+
+        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && !is_const>::type* = nullptr>
+        typename U::value_type& value() {
             return U()(*m_iterator);
         }
         
@@ -524,7 +525,7 @@ public:
                 backward_shift(ibucket);
             }
             else if(m_buckets[ibucket].index() >= end_index) {
-                m_buckets[ibucket].set_index(m_buckets[ibucket].index() - nb_values);
+                m_buckets[ibucket].set_index(index_type(m_buckets[ibucket].index() - nb_values));
             }
         }
         
@@ -553,7 +554,6 @@ public:
         swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
-        swap(m_min_load_factor_rehash_threshold, other.m_min_load_factor_rehash_threshold);
     }
     
         
@@ -618,7 +618,7 @@ public:
     template<class K>
     iterator find(const K& key, std::size_t hash) {
         auto it_bucket = find_key(key, hash);
-        return (it_bucket != m_buckets.end())?begin() + it_bucket->index():end();
+        return (it_bucket != m_buckets.end())?iterator(m_values.begin() + it_bucket->index()):end();
     }
     
     template<class K>
@@ -629,7 +629,7 @@ public:
     template<class K>
     const_iterator find(const K& key, std::size_t hash) const {
         auto it_bucket = find_key(key, hash);
-        return (it_bucket != m_buckets.cend())?cbegin() + it_bucket->index():cend();
+        return (it_bucket != m_buckets.cend())?const_iterator(m_values.begin() + it_bucket->index()):end();
     }
     
     
@@ -681,9 +681,6 @@ public:
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
         m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
-        m_min_load_factor_rehash_threshold = size_type(
-                                                 float(bucket_count())*REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR
-                                             );
     }
     
     void rehash(size_type count) {
@@ -715,7 +712,7 @@ public:
      * Other
      */
     iterator mutable_iterator(const_iterator pos) {
-        return begin() + iterator_to_index(pos);
+        return iterator(m_values.begin() + iterator_to_index(pos));
     }
     
     iterator nth(size_type index) {
@@ -896,8 +893,8 @@ private:
                 continue;
             }
             
-            auto insert_hash = old_bucket.truncated_hash();
-            auto insert_index = old_bucket.index();
+            truncated_hash_type insert_hash = old_bucket.truncated_hash();
+            index_type insert_index = old_bucket.index();
             
             for(std::size_t ibucket = bucket_for_hash(insert_hash), dist_from_init_bucket = 0; ; 
                 ibucket = next_bucket(ibucket), dist_from_init_bucket++) 
@@ -1040,8 +1037,9 @@ private:
             ibucket = next_bucket(ibucket);
             dist_from_init_bucket++;
             
-            if(dist_from_init_bucket > REHASH_ON_HIGH_NB_PROBES__NPROBES &&
-               size() >= m_min_load_factor_rehash_threshold)
+            
+            if(dist_from_init_bucket > REHASH_ON_HIGH_NB_PROBES__NPROBES && !m_grow_on_next_insert &&
+               load_factor() >= REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR)
             {
                 // We don't want to grow the map now as we need this method to be noexcept.
                 // Do it on next insert.
@@ -1139,7 +1137,6 @@ private:
     bool m_grow_on_next_insert;
     float m_max_load_factor;
     size_type m_load_threshold;
-    size_type m_min_load_factor_rehash_threshold;
 };
 
 
@@ -1180,11 +1177,11 @@ private:
     public:
         using key_type = Key;
         
-        const key_type& operator()(const std::pair<Key, T>& key_value) const {
+        const key_type& operator()(const std::pair<Key, T>& key_value) const noexcept {
             return key_value.first;
         }
         
-        key_type& operator()(std::pair<Key, T>& key_value) {
+        key_type& operator()(std::pair<Key, T>& key_value) noexcept {
             return key_value.first;
         }
     };  
@@ -1193,11 +1190,11 @@ private:
     public:
         using value_type = T;
         
-        const value_type& operator()(const std::pair<Key, T>& key_value) const {
+        const value_type& operator()(const std::pair<Key, T>& key_value) const noexcept {
             return key_value.second;
         }
         
-        value_type& operator()(std::pair<Key, T>& key_value) {
+        value_type& operator()(std::pair<Key, T>& key_value) noexcept {
             return key_value.second;
         }
     };
@@ -1910,11 +1907,11 @@ private:
     public:
         using key_type = Key;
         
-        const key_type& operator()(const Key& key) const {
+        const key_type& operator()(const Key& key) const noexcept {
             return key;
         }
         
-        key_type& operator()(Key& key) {
+        key_type& operator()(Key& key) noexcept {
             return key;
         }
     };
