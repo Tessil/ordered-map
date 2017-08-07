@@ -11,6 +11,8 @@ The library provides a behaviour similar to a `std::deque/std::vector` with uniq
 
 Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
+**Note**: The library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.
+
 ### Key features
 - Header-only library, just include [src/ordered_map.h](src/ordered_map.h) to your project and you're ready to go.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
@@ -31,6 +33,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
+- The map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values.
 - No support for some bucket related methods (like bucket_size, bucket, ...).
 
 These differences also apply between `std::unordered_set` and `tsl::ordered_set`.

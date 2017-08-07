@@ -94,6 +94,9 @@ struct is_vector<T, typename std::enable_if<
 /**
  * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket's value 
  * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the hash of the value.
+ * 
+ * The 32-bit index limits the size of the map to 2^32 - 1 elements (-1 due to a reserved value used to mark a
+ * bucket as empty).
  */
 class bucket_entry {
 public:
@@ -160,6 +163,8 @@ private:
     truncated_hash_type m_hash;
 };
 
+
+
 /**
  * Internal common class used by ordered_map and ordered_set.
  * 
@@ -172,6 +177,18 @@ private:
  * 
  * ValueTypeContainer is the container which will be used to store ValueType values. 
  * Usually a std::deque<ValueType, Allocator> or std::vector<ValueType, Allocator>.
+ * 
+ * 
+ * 
+ * The orderd_hash structure is a hash table which preserves the order of insertion of the elements.
+ * To do so, it stores the values in the ValueTypeContainer (m_values) using emplace_back at each
+ * insertion of a new element. Another structure (m_buckets of type std::vector<bucket_entry>) will 
+ * serve as buckets array for the hash table part. Each bucket stores an index which corresponds to 
+ * the index in m_values where the bucket's value is and the (truncated) hash of this value. An index
+ * is used instead of a pointer to the value to reduce the size of each bucket entry.
+ * 
+ * To resolve collisions in the buckets array, the structures use robin hood linear probing with 
+ * backward shift deletion.
  */
 template<class ValueType,
          class KeySelect,
@@ -473,6 +490,10 @@ public:
                                 std::forward_as_tuple(std::forward<Args>(value_args)...));     
     }
     
+    /**
+     * Here to avoid `template<class K> size_type erase(const K& key)` being used when
+     * we use a iterator instead of a const_iterator.
+     */
     iterator erase(iterator pos) {
         return erase(const_iterator(pos));
     }
@@ -487,8 +508,10 @@ public:
         
         erase_value_from_bucket(it_bucket);
         
-        // One element was removed from m_values, 
-        // due to the left shift the next element is now at the position of the previous element.
+        /*
+         * One element was removed from m_values, due to the left shift the next element 
+         * is now at the position of the previous element (or end if none).
+         */
         return begin() + index_erase;
     }
 
@@ -755,6 +778,10 @@ public:
     }
     
     
+    /**
+     * Here to avoid `template<class K> size_type unordered_erase(const K& key)` being used when
+     * we use a iterator instead of a const_iterator.
+     */    
     iterator unordered_erase(iterator pos) {
         return unordered_erase(const_iterator(pos));
     }
@@ -846,6 +873,10 @@ private:
     
     /**
      * Return bucket which has the key 'key' or m_buckets.end() if none.
+     * 
+     * From the bucket_for_hash, search for the value until we either find an empty bucket
+     * or a bucket which has a value with a distance from its initial bucket longer
+     * than the probe length for the value we are looking for.
      */
     template<class K>
     typename buckets_container_type::const_iterator find_key(const K& key, std::size_t hash) const {
@@ -881,6 +912,7 @@ private:
         
         buckets_container_type old_buckets(bucket_count);
         m_buckets.swap(old_buckets);
+        // Everything should be noexcept from here.
         
         m_mask = bucket_count - 1;
         this->max_load_factor(m_max_load_factor);
@@ -1146,21 +1178,25 @@ private:
 /**
  * Implementation of an hash map using open adressing with robin hood with backshift delete to resolve collisions.
  * 
- * The particularity of the hash map is that it remembers the order in which the elements were added and
+ * The particularity of this hash map is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
- * The used container is defined by ValueTypeContainer, by default a std::deque is used (grow faster) but
+ * The used container is defined by ValueTypeContainer, by default a std::deque is used (grows faster) but
  * a std::vector may be used. In this case the map provides a 'data()' method which give a direct access 
  * to the memory used to store the values (which can be usefull to communicate with C API's).
  * 
+ * The Key and T must be copy constructible and/or move constructible. To use `unordered_erase` they both
+ * must be swappable.
+ * 
+ * The behaviour of the hash map is undefinded if the destructor of Key or T throws an exception.
  * 
  * Iterators invalidation:
  *  - clear, operator=, reserve, rehash: always invalidate the iterators (also invalidate end()).
  *  - insert, emplace, emplace_hint, operator[]: when a std::vector is used as ValueTypeContainer 
  *                                               and if size() < capacity(), only end(). 
  *                                               Otherwise all the iterators are invalidated if an insert occurs.
- *  - erase: when a std::vector is used as ValueTypeContainer invalidate the iterator of the erased element 
- *           and all the ones after the erased element (including end()). 
- *           Otherwise all the iterators are invalidated if an erase occurs.
+ *  - erase, unordered_erase: when a std::vector is used as ValueTypeContainer invalidate the iterator of 
+ *                            the erased element and all the ones after the erased element (including end()). 
+ *                            Otherwise all the iterators are invalidated if an erase occurs.
  */
 template<class Key, 
          class T, 
@@ -1877,21 +1913,24 @@ private:
 /**
  * Implementation of an hash set using open adressing with robin hood with backshift delete to resolve collisions.
  * 
- * The particularity of the hash set is that it remembers the order in which the elements were added and
+ * The particularity of this hash set is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
- * The used container is defined by ValueTypeContainer, by default a std::deque is used (grow faster) but
+ * The used container is defined by ValueTypeContainer, by default a std::deque is used (grows faster) but
  * a std::vector may be used. In this case the set provides a 'data()' method which give a direct access 
  * to the memory used to store the values (which can be usefull to communicate with C API's).
  * 
+ * The Key must be copy constructible and/or move constructible. To use `unordered_erase` it also must be swappable.
+ * 
+ * The behaviour of the hash set is undefinded if the destructor of Key throws an exception.
  * 
  * Iterators invalidation:
  *  - clear, operator=, reserve, rehash: always invalidate the iterators (also invalidate end()).
  *  - insert, emplace, emplace_hint, operator[]: when a std::vector is used as ValueTypeContainer 
  *                                               and if size() < capacity(), only end(). 
  *                                               Otherwise all the iterators are invalidated if an insert occurs.
- *  - erase: when a std::vector is used as ValueTypeContainer invalidate the iterator of the erased element 
- *           and all the ones after the erased element (including end()). 
- *           Otherwise all the iterators are invalidated if an erase occurs.
+ *  - erase, unordered_erase: when a std::vector is used as ValueTypeContainer invalidate the iterator of 
+ *                            the erased element and all the ones after the erased element (including end()). 
+ *                            Otherwise all the iterators are invalidated if an erase occurs.
  */
 template<class Key, 
          class Hash = std::hash<Key>,
