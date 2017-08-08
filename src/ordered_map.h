@@ -450,6 +450,15 @@ public:
         return insert_impl(KeySelect()(value), std::forward<P>(value));
     }
     
+    template<typename P>
+    iterator insert(const_iterator hint, P&& value) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), KeySelect()(value))) { 
+            return mutable_iterator(hint); 
+        }
+        
+        return insert(std::forward<P>(value)).first; 
+    }
+    
     template<class InputIt>
     void insert(InputIt first, InputIt last) {
         if(std::is_base_of<std::forward_iterator_tag, 
@@ -479,9 +488,26 @@ public:
         return it;
     }
     
+    template<class K, class M>
+    iterator insert_or_assign(const_iterator hint, K&& key, M&& obj) {
+        if(hint != cend() && compare_keys(KeySelect()(*hint), key)) { 
+            auto it = mutable_iterator(hint); 
+            it.value() = std::forward<M>(obj);
+            
+            return it;
+        }
+        
+        return insert_or_assign(std::forward<K>(key), std::forward<M>(obj)).first;
+    }
+    
     template<class... Args>
     std::pair<iterator, bool> emplace(Args&&... args) {
         return insert(value_type(std::forward<Args>(args)...));
+    }
+    
+    template<class... Args>
+    std::pair<iterator, bool> emplace_hint(const_iterator hint, Args&&... args) { 
+        return insert(hint, value_type(std::forward<Args>(args)...));
     }
     
     template<class K, class... Args>
@@ -489,6 +515,15 @@ public:
         return insert_impl(key, std::piecewise_construct, 
                                 std::forward_as_tuple(std::forward<K>(key)), 
                                 std::forward_as_tuple(std::forward<Args>(value_args)...));     
+    }
+    
+    template<class K, class... Args>
+    iterator try_emplace(const_iterator hint, K&& key, Args&&... args) {
+        if(hint != cend() && compare_keys(KeySelect()(*hint), key)) { 
+            return mutable_iterator(hint); 
+        }
+        
+        return try_emplace(std::forward<K>(key), std::forward<Args>(args)...).first;
     }
     
     /**
@@ -1275,7 +1310,7 @@ public:
                          const Hash& hash = Hash(),
                          const KeyEqual& equal = KeyEqual(),
                          const Allocator& alloc = Allocator()) : 
-                         m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
+                     m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
     {
     }
     
@@ -1323,14 +1358,14 @@ public:
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
                 const Allocator& alloc = Allocator()) : 
-                ordered_map(init.begin(), init.end(), bucket_count, hash, equal, alloc)
+            ordered_map(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
 
     ordered_map(std::initializer_list<value_type> init,
                 size_type bucket_count,
                 const Allocator& alloc) : 
-                ordered_map(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
+            ordered_map(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
 
@@ -1338,7 +1373,7 @@ public:
                 size_type bucket_count,
                 const Hash& hash,
                 const Allocator& alloc) : 
-                ordered_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
+            ordered_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
@@ -1398,30 +1433,17 @@ public:
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
     
     
-    iterator insert(const_iterator hint, const value_type& value) { 
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(value))) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.insert(value).first; 
+    iterator insert(const_iterator hint, const value_type& value) {
+        return m_ht.insert(hint, value);
     }
         
     template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
     iterator insert(const_iterator hint, P&& value) {
-        value_type val(std::forward<P>(value));
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(val))) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.insert(std::move(val)).first;
+        return m_ht.emplace_hint(hint, std::forward<P>(value));
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(value))) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.insert(std::move(value)).first; 
+        return m_ht.insert(hint, std::move(value));
     }
     
     
@@ -1445,26 +1467,12 @@ public:
     
     template<class M>
     iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { 
-            auto it = m_ht.mutable_iterator(hint); 
-            it.value() = std::forward<M>(obj);
-            
-            return it;
-        }
-        
-        return m_ht.insert_or_assign(k, std::forward<M>(obj)).first;
+        return m_ht.insert_or_assign(hint, k, std::forward<M>(obj));
     }
     
     template<class M>
     iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { 
-            auto it = m_ht.mutable_iterator(hint); 
-            it.value() = std::forward<M>(obj);
-            
-            return it;
-        }
-        
-        return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj)).first;
+        return m_ht.insert_or_assign(hint, std::move(k), std::forward<M>(obj));
     }
     
     /**
@@ -1484,7 +1492,7 @@ public:
      */
     template <class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) {
-        return insert(hint, value_type(std::forward<Args>(args)...));        
+        return m_ht.emplace_hint(hint, std::forward<Args>(args)...);
     }
     
     
@@ -1502,20 +1510,12 @@ public:
     
     template<class... Args>
     iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.try_emplace(k, std::forward<Args>(args)...).first;
+        return m_ht.try_emplace(hint, k, std::forward<Args>(args)...);
     }
     
     template<class... Args>
     iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...).first;
+        return m_ht.try_emplace(hint, std::move(k), std::forward<Args>(args)...);
     }
     
     
@@ -1991,21 +1991,21 @@ public:
     }
     
     explicit ordered_set(size_type bucket_count, 
-                        const Hash& hash = Hash(),
-                        const KeyEqual& equal = KeyEqual(),
-                        const Allocator& alloc = Allocator()) : 
+                         const Hash& hash = Hash(),
+                         const KeyEqual& equal = KeyEqual(),
+                         const Allocator& alloc = Allocator()) : 
                         m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
     {
     }
     
     ordered_set(size_type bucket_count,
-                  const Allocator& alloc) : ordered_set(bucket_count, Hash(), KeyEqual(), alloc)
+                const Allocator& alloc) : ordered_set(bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
     ordered_set(size_type bucket_count,
-                  const Hash& hash,
-                  const Allocator& alloc) : ordered_set(bucket_count, hash, KeyEqual(), alloc)
+                const Hash& hash,
+                const Allocator& alloc) : ordered_set(bucket_count, hash, KeyEqual(), alloc)
     {
     }
     
@@ -2038,26 +2038,26 @@ public:
     }
 
     ordered_set(std::initializer_list<value_type> init,
-                    size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
-                    const Hash& hash = Hash(),
-                    const KeyEqual& equal = KeyEqual(),
-                    const Allocator& alloc = Allocator()) : 
-                    ordered_set(init.begin(), init.end(), bucket_count, hash, equal, alloc)
+                size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
+                const Hash& hash = Hash(),
+                const KeyEqual& equal = KeyEqual(),
+                const Allocator& alloc = Allocator()) : 
+            ordered_set(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
 
     ordered_set(std::initializer_list<value_type> init,
-                    size_type bucket_count,
-                    const Allocator& alloc) : 
-                    ordered_set(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
+                size_type bucket_count,
+                const Allocator& alloc) : 
+            ordered_set(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
 
     ordered_set(std::initializer_list<value_type> init,
-                    size_type bucket_count,
-                    const Hash& hash,
-                    const Allocator& alloc) : 
-                    ordered_set(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
+                size_type bucket_count,
+                const Hash& hash,
+                const Allocator& alloc) : 
+            ordered_set(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
@@ -2111,20 +2111,12 @@ public:
     std::pair<iterator, bool> insert(const value_type& value) { return m_ht.insert(value); }
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
     
-    iterator insert(const_iterator hint, const value_type& value) { 
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(value))) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.insert(value).first; 
+    iterator insert(const_iterator hint, const value_type& value) {
+        return m_ht.insert(hint, value); 
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(value))) { 
-            return m_ht.mutable_iterator(hint); 
-        }
-        
-        return m_ht.insert(std::move(value)).first; 
+        return m_ht.insert(hint, std::move(value)); 
     }
     
     template<class InputIt>
@@ -2150,7 +2142,7 @@ public:
      */
     template<class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) {
-        return m_ht.insert(hint, value_type(std::forward<Args>(args)...));              
+        return m_ht.emplace_hint(hint, std::forward<Args>(args)...); 
     }
 
     /**
