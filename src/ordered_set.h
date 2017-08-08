@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef TSL_ORDERED_MAP_H
-#define TSL_ORDERED_MAP_H
+#ifndef TSL_ORDERED_SET_H
+#define TSL_ORDERED_SET_H
 
 
 #include <cstddef>
@@ -40,18 +40,17 @@ namespace tsl {
 
 
 /**
- * Implementation of an hash map using open adressing with robin hood with backshift delete to resolve collisions.
+ * Implementation of an hash set using open adressing with robin hood with backshift delete to resolve collisions.
  * 
- * The particularity of this hash map is that it remembers the order in which the elements were added and
+ * The particularity of this hash set is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
  * The used container is defined by ValueTypeContainer, by default a std::deque is used (grows faster) but
- * a std::vector may be used. In this case the map provides a 'data()' method which give a direct access 
+ * a std::vector may be used. In this case the set provides a 'data()' method which give a direct access 
  * to the memory used to store the values (which can be usefull to communicate with C API's).
  * 
- * The Key and T must be copy constructible and/or move constructible. To use `unordered_erase` they both
- * must be swappable.
+ * The Key must be copy constructible and/or move constructible. To use `unordered_erase` it also must be swappable.
  * 
- * The behaviour of the hash map is undefinded if the destructor of Key or T throws an exception.
+ * The behaviour of the hash set is undefinded if the destructor of Key throws an exception.
  * 
  * Iterators invalidation:
  *  - clear, operator=, reserve, rehash: always invalidate the iterators (also invalidate end()).
@@ -63,12 +62,11 @@ namespace tsl {
  *                            Otherwise all the iterators are invalidated if an erase occurs.
  */
 template<class Key, 
-         class T, 
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
-         class Allocator = std::allocator<std::pair<Key, T>>,
-         class ValueTypeContainer = std::deque<std::pair<Key, T>, Allocator>>
-class ordered_map {
+         class Allocator = std::allocator<Key>,
+         class ValueTypeContainer = std::deque<Key, Allocator>>
+class ordered_set {
 private:
     template<typename U>
     using has_is_transparent = tsl::detail_ordered_hash::has_is_transparent<U>;
@@ -77,34 +75,20 @@ private:
     public:
         using key_type = Key;
         
-        const key_type& operator()(const std::pair<Key, T>& key_value) const noexcept {
-            return key_value.first;
+        const key_type& operator()(const Key& key) const noexcept {
+            return key;
         }
         
-        key_type& operator()(std::pair<Key, T>& key_value) noexcept {
-            return key_value.first;
-        }
-    };  
-    
-    class ValueSelect {
-    public:
-        using value_type = T;
-        
-        const value_type& operator()(const std::pair<Key, T>& key_value) const noexcept {
-            return key_value.second;
-        }
-        
-        value_type& operator()(std::pair<Key, T>& key_value) noexcept {
-            return key_value.second;
+        key_type& operator()(Key& key) noexcept {
+            return key;
         }
     };
     
-    using ht = detail_ordered_hash::ordered_hash<std::pair<Key, T>, KeySelect, ValueSelect,
+    using ht = detail_ordered_hash::ordered_hash<Key, KeySelect, void,
                                                  Hash, KeyEqual, Allocator, ValueTypeContainer>;
-    
+            
 public:
     using key_type = typename ht::key_type;
-    using mapped_type = T;
     using value_type = typename ht::value_type;
     using size_type = typename ht::size_type;
     using difference_type = typename ht::difference_type;
@@ -121,87 +105,87 @@ public:
     using const_reverse_iterator = typename ht::const_reverse_iterator;
     
     using values_container_type = typename ht::values_container_type;
-    
+
     
     /*
      * Constructors
      */
-    ordered_map() : ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {
+    ordered_set() : ordered_set(ht::DEFAULT_INIT_BUCKETS_SIZE) {
     }
     
-    explicit ordered_map(size_type bucket_count, 
+    explicit ordered_set(size_type bucket_count, 
                          const Hash& hash = Hash(),
                          const KeyEqual& equal = KeyEqual(),
                          const Allocator& alloc = Allocator()) : 
-                     m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
+                        m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
     {
     }
     
-    ordered_map(size_type bucket_count,
-                const Allocator& alloc) : ordered_map(bucket_count, Hash(), KeyEqual(), alloc)
+    ordered_set(size_type bucket_count,
+                const Allocator& alloc) : ordered_set(bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
-    ordered_map(size_type bucket_count,
+    ordered_set(size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : ordered_map(bucket_count, hash, KeyEqual(), alloc)
+                const Allocator& alloc) : ordered_set(bucket_count, hash, KeyEqual(), alloc)
     {
     }
     
-    explicit ordered_map(const Allocator& alloc) : ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
+    explicit ordered_set(const Allocator& alloc) : ordered_set(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
     }
     
     template<class InputIt>
-    ordered_map(InputIt first, InputIt last,
+    ordered_set(InputIt first, InputIt last,
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
-                const Allocator& alloc = Allocator()) : ordered_map(bucket_count, hash, equal, alloc)
+                const Allocator& alloc = Allocator()) : ordered_set(bucket_count, hash, equal, alloc)
     {
         insert(first, last);
     }
     
     template<class InputIt>
-    ordered_map(InputIt first, InputIt last,
+    ordered_set(InputIt first, InputIt last,
                 size_type bucket_count,
-                const Allocator& alloc) : ordered_map(first, last, bucket_count, Hash(), KeyEqual(), alloc)
+                const Allocator& alloc) : ordered_set(first, last, bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
     template<class InputIt>
-    ordered_map(InputIt first, InputIt last,
+    ordered_set(InputIt first, InputIt last,
                 size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : ordered_map(first, last, bucket_count, hash, KeyEqual(), alloc)
+                const Allocator& alloc) : ordered_set(first, last, bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
-    ordered_map(std::initializer_list<value_type> init,
+    ordered_set(std::initializer_list<value_type> init,
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
                 const Allocator& alloc = Allocator()) : 
-            ordered_map(init.begin(), init.end(), bucket_count, hash, equal, alloc)
+            ordered_set(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
 
-    ordered_map(std::initializer_list<value_type> init,
+    ordered_set(std::initializer_list<value_type> init,
                 size_type bucket_count,
                 const Allocator& alloc) : 
-            ordered_map(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
+            ordered_set(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
 
-    ordered_map(std::initializer_list<value_type> init,
+    ordered_set(std::initializer_list<value_type> init,
                 size_type bucket_count,
                 const Hash& hash,
                 const Allocator& alloc) : 
-            ordered_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
+            ordered_set(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
     
-    ordered_map& operator=(std::initializer_list<value_type> ilist) {
+    ordered_set& operator=(std::initializer_list<value_type> ilist) {
         m_ht.clear();
         
         m_ht.reserve(ilist.size());
@@ -212,7 +196,6 @@ public:
     
     allocator_type get_allocator() const { return m_ht.get_allocator(); }
     
-
     
     /*
      * Iterators
@@ -249,54 +232,21 @@ public:
     
     
     std::pair<iterator, bool> insert(const value_type& value) { return m_ht.insert(value); }
-        
-    template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
-    std::pair<iterator, bool> insert(P&& value) { return m_ht.emplace(std::forward<P>(value)); }
-    
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
     
-    
     iterator insert(const_iterator hint, const value_type& value) {
-        return m_ht.insert(hint, value);
-    }
-        
-    template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
-    iterator insert(const_iterator hint, P&& value) {
-        return m_ht.emplace_hint(hint, std::forward<P>(value));
+        return m_ht.insert(hint, value); 
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        return m_ht.insert(hint, std::move(value));
+        return m_ht.insert(hint, std::move(value)); 
     }
-    
     
     template<class InputIt>
     void insert(InputIt first, InputIt last) { m_ht.insert(first, last); }
     void insert(std::initializer_list<value_type> ilist) { m_ht.insert(ilist.begin(), ilist.end()); }
 
     
-    
-    
-    template<class M>
-    std::pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj) { 
-        return m_ht.insert_or_assign(k, std::forward<M>(obj)); 
-    }
-
-    template<class M>
-    std::pair<iterator, bool> insert_or_assign(key_type&& k, M&& obj) { 
-        return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj)); 
-    }
-    
-    
-    template<class M>
-    iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
-        return m_ht.insert_or_assign(hint, k, std::forward<M>(obj));
-    }
-    
-    template<class M>
-    iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
-        return m_ht.insert_or_assign(hint, std::move(k), std::forward<M>(obj));
-    }
     
     /**
      * Due to the way elements are stored, emplace will need to move or copy the key-value once.
@@ -313,36 +263,10 @@ public:
      * 
      * Mainly here for compatibility with the std::unordered_map interface.
      */
-    template <class... Args>
+    template<class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) {
-        return m_ht.emplace_hint(hint, std::forward<Args>(args)...);
+        return m_ht.emplace_hint(hint, std::forward<Args>(args)...); 
     }
-    
-    
-    
-    
-    template<class... Args>
-    std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) { 
-        return m_ht.try_emplace(k, std::forward<Args>(args)...);
-    }
-    
-    template<class... Args>
-    std::pair<iterator, bool> try_emplace(key_type&& k, Args&&... args) {
-        return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
-    }
-    
-    template<class... Args>
-    iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) {
-        return m_ht.try_emplace(hint, k, std::forward<Args>(args)...);
-    }
-    
-    template<class... Args>
-    iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
-        return m_ht.try_emplace(hint, std::move(k), std::forward<Args>(args)...);
-    }
-    
-    
-    
 
     /**
      * When erasing an element, the insert order will be preserved and no holes will be present in the container
@@ -350,12 +274,12 @@ public:
      * 
      * The method is in O(n), if the order is not important 'unordered_erase(...)' method is faster with an O(1)
      * average complexity.
-     */
+     */    
     iterator erase(iterator pos) { return m_ht.erase(pos); }
     
     /**
      * @copydoc erase(iterator pos)
-     */
+     */    
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     
     /**
@@ -400,63 +324,11 @@ public:
     
     
     
-    void swap(ordered_map& other) { other.m_ht.swap(m_ht); }
+    void swap(ordered_set& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
      */
-    T& at(const Key& key) { return m_ht.at(key); }
-    
-    /**
-     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
-     */
-    T& at(const Key& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
-    
-    
-    const T& at(const Key& key) const { return m_ht.at(key); }
-    
-    /**
-     * @copydoc at(const Key& key, std::size_t precalculated_hash)
-     */
-    const T& at(const Key& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
-    
-    
-    /**
-     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
-     * If so, K must be hashable and comparable to Key.
-     */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    T& at(const K& key) { return m_ht.at(key); }
-    
-    /**
-     * @copydoc at(const K& key)
-     * 
-     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
-     */    
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    T& at(const K& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
-    
-    /**
-     * @copydoc at(const K& key)
-     */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
-    const T& at(const K& key) const { return m_ht.at(key); }
-    
-    /**
-     * @copydoc at(const K& key, std::size_t precalculated_hash)
-     */    
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    const T& at(const K& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
-    
-    
-    
-    T& operator[](const Key& key) { return m_ht[key]; }    
-    T& operator[](Key&& key) { return m_ht[std::move(key)]; }
-    
-    
-    
     size_type count(const Key& key) const { return m_ht.count(key); }
     
     /**
@@ -471,7 +343,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
     size_type count(const K& key) const { return m_ht.count(key); }
     
     /**
@@ -484,6 +356,7 @@ public:
     size_type count(const K& key, std::size_t precalculated_hash) const { 
         return m_ht.count(key, precalculated_hash);
     }
+    
     
     
     
@@ -508,7 +381,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
     iterator find(const K& key) { return m_ht.find(key); }
     
     /**
@@ -523,7 +396,7 @@ public:
     /**
      * @copydoc find(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
     /**
@@ -557,7 +430,7 @@ public:
     std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t precalculated_hash) const { 
         return m_ht.equal_range(key, precalculated_hash); 
     }
-
+    
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
@@ -590,8 +463,7 @@ public:
         return m_ht.equal_range(key, precalculated_hash); 
     }
     
-    
-    
+
     /*
      * Bucket interface 
      */
@@ -600,7 +472,7 @@ public:
     
     
     /*
-     * Hash policy 
+     *  Hash policy 
      */
     float load_factor() const { return m_ht.load_factor(); }
     float max_load_factor() const { return m_ht.max_load_factor(); }
@@ -615,7 +487,6 @@ public:
      */
     hasher hash_function() const { return m_ht.hash_function(); }
     key_equal key_eq() const { return m_ht.key_eq(); }
-    
     
     
     /*
@@ -655,14 +526,14 @@ public:
     
     /**
      * Only available if ValueTypeContainer is a std::vector. Same as calling 'values_container().data()'.
-     */
+     */ 
     template<class U = values_container_type, typename std::enable_if<tsl::detail_ordered_hash::is_vector<U>::value>::type* = nullptr>    
     const typename values_container_type::value_type* data() const noexcept { return m_ht.data(); }
-        
+    
     /**
      * Return the container in which the values are stored. The values are in the same order as the insertion order
      * and are contiguous in the structure, no holes (size() == values_container().size()).
-     */
+     */        
     const values_container_type& values_container() const noexcept { return m_ht.values_container(); }
 
     template<class U = values_container_type, typename std::enable_if<tsl::detail_ordered_hash::is_vector<U>::value>::type* = nullptr>    
@@ -676,12 +547,12 @@ public:
      * Faster erase operation with an O(1) average complexity but it doesn't preserve the insertion order.
      * 
      * If an erasure occurs, the last element of the map will take the place of the erased element.
-     */
+     */    
     iterator unordered_erase(iterator pos) { return m_ht.unordered_erase(pos); }
     
     /**
      * @copydoc unordered_erase(iterator pos)
-     */
+     */    
     iterator unordered_erase(const_iterator pos) { return m_ht.unordered_erase(pos); }
     
     /**
@@ -721,17 +592,17 @@ public:
     
     
     
-    friend bool operator==(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht == rhs.m_ht; }
-    friend bool operator!=(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht != rhs.m_ht; }
-    friend bool operator<(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht < rhs.m_ht; }
-    friend bool operator<=(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht <= rhs.m_ht; }
-    friend bool operator>(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht > rhs.m_ht; }
-    friend bool operator>=(const ordered_map& lhs, const ordered_map& rhs) { return lhs.m_ht >= rhs.m_ht; }
+    friend bool operator==(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht == rhs.m_ht; }
+    friend bool operator!=(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht != rhs.m_ht; }
+    friend bool operator<(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht < rhs.m_ht; }
+    friend bool operator<=(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht <= rhs.m_ht; }
+    friend bool operator>(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht > rhs.m_ht; }
+    friend bool operator>=(const ordered_set& lhs, const ordered_set& rhs) { return lhs.m_ht >= rhs.m_ht; }
     
-    friend void swap(ordered_map& lhs, ordered_map& rhs) { lhs.swap(rhs); }
-
+    friend void swap(ordered_set& lhs, ordered_set& rhs) { lhs.swap(rhs); }
+    
 private:
-    ht m_ht;
+    ht m_ht;    
 };
 
 } // end namespace tsl
