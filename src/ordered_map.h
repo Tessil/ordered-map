@@ -442,6 +442,7 @@ public:
         }
         
         m_values.clear();
+        m_grow_on_next_insert = false;
     }
     
     template<typename P>
