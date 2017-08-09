@@ -43,10 +43,18 @@
 #include <vector>
 
 
-
+/**
+ * Macros for compatibility with GCC 4.8
+ */
 #ifndef TSL_NO_CONTAINER_ERASE_CONST_ITERATOR
     #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
     #define TSL_NO_CONTAINER_ERASE_CONST_ITERATOR
+    #endif
+#endif
+
+#ifndef TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
+    #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
+    #define TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
     #endif
 #endif
 
@@ -481,6 +489,8 @@ public:
         }
     }
     
+    
+    
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign(K&& key, M&& value) {
         auto it = try_emplace(std::forward<K>(key), std::forward<M>(value));
@@ -503,6 +513,8 @@ public:
         return insert_or_assign(std::forward<K>(key), std::forward<M>(obj)).first;
     }
     
+    
+    
     template<class... Args>
     std::pair<iterator, bool> emplace(Args&&... args) {
         return insert(value_type(std::forward<Args>(args)...));
@@ -512,6 +524,8 @@ public:
     std::pair<iterator, bool> emplace_hint(const_iterator hint, Args&&... args) { 
         return insert(hint, value_type(std::forward<Args>(args)...));
     }
+    
+    
     
     template<class K, class... Args>
     std::pair<iterator, bool> try_emplace(K&& key, Args&&... value_args) {
@@ -528,6 +542,8 @@ public:
         
         return try_emplace(std::forward<K>(key), std::forward<Args>(args)...).first;
     }
+    
+    
     
     /**
      * Here to avoid `template<class K> size_type erase(const K& key)` being used when
@@ -815,6 +831,26 @@ public:
     void shrink_to_fit() {
         m_values.shrink_to_fit();
     }
+    
+    
+    template<typename P>
+    std::pair<iterator, bool> insert_at_position(const_iterator pos, P&& value) {
+        return insert_at_position_impl(pos.m_iterator, KeySelect()(value), std::forward<P>(value));
+    }
+    
+    template<class... Args>
+    std::pair<iterator, bool> emplace_at_position(const_iterator pos, Args&&... args) {
+        return insert_at_position(pos, value_type(std::forward<Args>(args)...));
+    }
+    
+    template<class K, class... Args>
+    std::pair<iterator, bool> try_emplace_at_position(const_iterator pos, K&& key, Args&&... value_args) {
+        return insert_at_position_impl(pos.m_iterator, key, 
+                                           std::piecewise_construct, 
+                                           std::forward_as_tuple(std::forward<K>(key)), 
+                                           std::forward_as_tuple(std::forward<Args>(value_args)...));
+    }
+    
 
     void pop_back() {
         tsl_assert(!empty());
@@ -1026,7 +1062,7 @@ private:
          * shift the indexes by 1 in the buckets array for these values.
          */
         if(it_bucket->index() != m_values.size()) {
-            shift_indexes_left_in_buckets(it_bucket->index(), 1);
+            shift_indexes_in_buckets(it_bucket->index(), short(1));
         }        
         
         // Mark the bucket as empty and do a backward shift of the values on the right
@@ -1038,14 +1074,19 @@ private:
      * Go through each value from [from_ivalue, m_values.size()) in m_values and for each
      * bucket corresponding to the value, shift the indexes to the left by delta.
      */
-    void shift_indexes_left_in_buckets(index_type from_ivalue, index_type delta) noexcept  {
+    void shift_indexes_in_buckets(index_type from_ivalue, short delta) noexcept  {
+        static_assert(std::is_unsigned<index_type>::value && sizeof(index_type) >= sizeof(short), 
+                      "index_type should be unsigned and sizeof(index_type) >= sizeof(short)");
+        
         for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
             std::size_t ibucket = bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
-            while(m_buckets[ibucket].index() != ivalue + delta) {
+            
+            // Modulo arithmetic, we should be alright for index_type(ivalue + delta). TODO further checks
+            while(m_buckets[ibucket].index() != index_type(ivalue + delta)) {
                 ibucket = next_bucket(ibucket);
             }
             
-            m_buckets[ibucket].set_index(m_buckets[ibucket].index() - delta);
+            m_buckets[ibucket].set_index(index_type(m_buckets[ibucket].index() - delta));
         }
     }
     
@@ -1064,6 +1105,16 @@ private:
     
     template<class K, class... Args>
     std::pair<iterator, bool> insert_impl(const K& key, Args&&... value_type_args) {
+        return insert_at_position_impl(m_values.cend(), key, std::forward<Args>(value_type_args)...);
+    }
+    
+    /**
+     * Insert the element before insert_position.
+     */
+    template<class K, class... Args>
+    std::pair<iterator, bool> insert_at_position_impl(typename values_container_type::const_iterator insert_position,
+                                                      const K& key, Args&&... value_type_args) 
+    {
         const std::size_t hash = hash_key(key);
         
         std::size_t ibucket = bucket_for_hash(hash); 
@@ -1090,11 +1141,27 @@ private:
             dist_from_init_bucket = 0;
         }
         
-        m_values.emplace_back(std::forward<Args>(value_type_args)...);
-        insert_index(ibucket, dist_from_init_bucket, 
-                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
         
-        return std::make_pair(std::prev(end()), true);
+        const index_type index_insert_position = index_type(std::distance(m_values.cbegin(), insert_position));
+        
+#ifdef TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
+        m_values.emplace(m_values.begin() + std::distance(m_values.cbegin(), insert_position), std::forward<Args>(value_type_args)...);
+#else        
+        m_values.emplace(insert_position, std::forward<Args>(value_type_args)...);
+#endif        
+
+        insert_index(ibucket, dist_from_init_bucket, 
+                     index_insert_position, bucket_entry::truncate_hash(hash));
+        
+        /*
+         * The insertion didn't happend at the end of the m_values container, 
+         * we need to shift the indexes in m_buckets.
+         */
+        if(index_insert_position != m_values.size() - 1) {
+            shift_indexes_in_buckets(index_insert_position + 1, short(-1));
+        }
+        
+        return std::make_pair(iterator(m_values.begin() + index_insert_position), true);
     }
     
     void insert_index(std::size_t ibucket, std::size_t dist_from_init_bucket, 

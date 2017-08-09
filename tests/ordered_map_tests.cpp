@@ -281,6 +281,50 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
 }
 
 
+/**
+ * insert_at_position
+ */
+BOOST_AUTO_TEST_CASE(test_insert_at_position) {
+    tsl::ordered_map<std::string, int> map = {{"Key2", 2}, {"Key4", 4}, {"Key6", 6}};
+    
+    map.insert_at_position(map.begin(), {"Key1", 1});
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key4", 4}, {"Key6", 6}}));
+    
+    map.insert_at_position(map.nth(2), {"Key3", 3});
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key6", 6}}));
+    
+    map.insert_at_position(map.end(), {"Key7", 7});
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key6", 6}, {"Key7", 7}}));
+    
+    map.insert_at_position(map.nth(4), {"Key5", 5});
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key5", 5}, {"Key6", 6}, {"Key7", 7}}));
+}
+
+/**
+ * try_emplace_at_position
+ */
+BOOST_AUTO_TEST_CASE(test_try_emplace_at_position) {
+    tsl::ordered_map<std::string, int> map = {{"Key2", 2}, {"Key4", 4}, {"Key6", 6}};
+    
+    map.try_emplace_at_position(map.begin(), "Key1", 1);
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key4", 4}, {"Key6", 6}}));
+    
+    map.try_emplace_at_position(map.nth(2), "Key3", 3);
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key6", 6}}));
+    
+    map.try_emplace_at_position(map.end(), "Key7", 7);
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key6", 6}, {"Key7", 7}}));
+    
+    map.try_emplace_at_position(map.nth(4), "Key5", 5);
+    BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1}, {"Key2", 2}, {"Key3", 3},
+                                                           {"Key4", 4}, {"Key5", 5}, {"Key6", 6}, {"Key7", 7}}));
+}
+
 
 /**
  * erase

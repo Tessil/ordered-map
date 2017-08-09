@@ -670,6 +670,54 @@ public:
     
     void shrink_to_fit() { m_ht.shrink_to_fit(); }
     
+    
+    
+    /**
+     * Insert the value before pos shifting all the elements on the right of pos (including pos) one position 
+     * to the right.
+     * 
+     * Amortized linear time-complexity in the distance between pos and end().
+     */
+    std::pair<iterator, bool> insert_at_position(const_iterator pos, const value_type& value) { 
+        return m_ht.insert_at_position(pos, value); 
+    }
+    
+    /**
+     * @copydoc insert_at_position(const_iterator pos, const value_type& value)
+     */
+    std::pair<iterator, bool> insert_at_position(const_iterator pos, value_type&& value) { 
+        return m_ht.insert_at_position(pos, std::move(value)); 
+    }
+    
+    /**
+     * @copydoc insert_at_position(const_iterator pos, const value_type& value)
+     * 
+     * Same as insert_at_position(pos, value_type(std::forward<Args>(args)...), mainly
+     * here for coherence.
+     */
+    template<class... Args>
+    std::pair<iterator, bool> emplace_at_position(const_iterator pos, Args&&... args) {
+        return m_ht.emplace_at_position(pos, std::forward<Args>(args)...); 
+    }
+       
+    /**
+     * @copydoc insert_at_position(const_iterator pos, const value_type& value)
+     */       
+    template<class... Args>
+    std::pair<iterator, bool> try_emplace_at_position(const_iterator pos, const key_type& k, Args&&... args) { 
+        return m_ht.try_emplace_at_position(pos, k, std::forward<Args>(args)...);
+    }
+    
+    /**
+     * @copydoc insert_at_position(const_iterator pos, const value_type& value)
+     */    
+    template<class... Args>
+    std::pair<iterator, bool> try_emplace_at_position(const_iterator pos, key_type&& k, Args&&... args) {
+        return m_ht.try_emplace_at_position(pos, std::move(k), std::forward<Args>(args)...);
+    }
+    
+    
+    
     void pop_back() { m_ht.pop_back(); }
     
     /**
