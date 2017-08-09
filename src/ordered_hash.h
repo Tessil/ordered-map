@@ -521,7 +521,7 @@ public:
     }
     
     template<class... Args>
-    std::pair<iterator, bool> emplace_hint(const_iterator hint, Args&&... args) { 
+    iterator emplace_hint(const_iterator hint, Args&&... args) { 
         return insert(hint, value_type(std::forward<Args>(args)...));
     }
     
