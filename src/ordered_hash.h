@@ -27,12 +27,11 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <climits>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <initializer_list>
 #include <iterator>
 #include <limits>
 #include <memory>

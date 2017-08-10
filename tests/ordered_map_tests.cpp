@@ -2,6 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/list.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>

@@ -2,6 +2,7 @@
 #define TSL_UTILS_H
 
 #include <boost/numeric/conversion/cast.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
