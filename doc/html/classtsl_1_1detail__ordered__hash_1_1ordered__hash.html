@@ -153,9 +153,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1d766a0538174d77b2c7440019bda077"><td class="memTemplParams" colspan="2">template&lt;class... Args&gt; </td></tr>
 <tr class="memitem:a1d766a0538174d77b2c7440019bda077"><td class="memTemplItemLeft" align="right" valign="top">std::pair&lt; <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a>, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a1d766a0538174d77b2c7440019bda077">emplace</a> (Args &amp;&amp;... args)</td></tr>
 <tr class="separator:a1d766a0538174d77b2c7440019bda077"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5e3dd5d27dc8ed0219c9df5343516b90"><td class="memTemplParams" colspan="2">template&lt;class... Args&gt; </td></tr>
-<tr class="memitem:a5e3dd5d27dc8ed0219c9df5343516b90"><td class="memTemplItemLeft" align="right" valign="top">std::pair&lt; <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a>, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a5e3dd5d27dc8ed0219c9df5343516b90">emplace_hint</a> (<a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a15a399d9b811d1deeda821b05042c39c">const_iterator</a> hint, Args &amp;&amp;... args)</td></tr>
-<tr class="separator:a5e3dd5d27dc8ed0219c9df5343516b90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97fd37f6ae70481f1bd6800c60bbceda"><td class="memTemplParams" colspan="2">template&lt;class... Args&gt; </td></tr>
+<tr class="memitem:a97fd37f6ae70481f1bd6800c60bbceda"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a97fd37f6ae70481f1bd6800c60bbceda">emplace_hint</a> (<a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a15a399d9b811d1deeda821b05042c39c">const_iterator</a> hint, Args &amp;&amp;... args)</td></tr>
+<tr class="separator:a97fd37f6ae70481f1bd6800c60bbceda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c2e8656e3bd8b1f1ee0bba3c0c9cd14"><td class="memTemplParams" colspan="2">template&lt;class K , class... Args&gt; </td></tr>
 <tr class="memitem:a8c2e8656e3bd8b1f1ee0bba3c0c9cd14"><td class="memTemplItemLeft" align="right" valign="top">std::pair&lt; <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a>, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a8c2e8656e3bd8b1f1ee0bba3c0c9cd14">try_emplace</a> (K &amp;&amp;key, Args &amp;&amp;... value_args)</td></tr>
 <tr class="separator:a8c2e8656e3bd8b1f1ee0bba3c0c9cd14"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -285,7 +285,7 @@ Public Member Functions</h2></td></tr>
 Static Public Attributes</h2></td></tr>
 <tr class="memitem:af8c6ab3262ce4655554dbc398759d979"><td class="memItemLeft" align="right" valign="top">static const <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a3d8af7d2c4724a4c1694ef04cc1ba174">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#af8c6ab3262ce4655554dbc398759d979">DEFAULT_INIT_BUCKETS_SIZE</a> = 16</td></tr>
 <tr class="separator:af8c6ab3262ce4655554dbc398759d979"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4c01b6b7a83183ddcc1b35229938e773"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a4c01b6b7a83183ddcc1b35229938e773">DEFAULT_MAX_LOAD_FACTOR</a> = 0.9f</td></tr>
+<tr class="memitem:a4c01b6b7a83183ddcc1b35229938e773"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a4c01b6b7a83183ddcc1b35229938e773">DEFAULT_MAX_LOAD_FACTOR</a> = 0.75f</td></tr>
 <tr class="separator:a4c01b6b7a83183ddcc1b35229938e773"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
@@ -1156,8 +1156,8 @@ template&lt;class... Args&gt; </div>
 
 </div>
 </div>
-<a id="a5e3dd5d27dc8ed0219c9df5343516b90"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5e3dd5d27dc8ed0219c9df5343516b90">&#9670;&nbsp;</a></span>emplace_hint()</h2>
+<a id="a97fd37f6ae70481f1bd6800c60bbceda"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97fd37f6ae70481f1bd6800c60bbceda">&#9670;&nbsp;</a></span>emplace_hint()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1170,7 +1170,7 @@ template&lt;class... Args&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::pair&lt;<a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a>, bool&gt; <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">tsl::detail_ordered_hash::ordered_hash</a>&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, ValueTypeContainer &gt;::emplace_hint </td>
+          <td class="memname"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a0d5c36b621bcf1cd2e72efafe38e784b">iterator</a> <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">tsl::detail_ordered_hash::ordered_hash</a>&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, ValueTypeContainer &gt;::emplace_hint </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html#a15a399d9b811d1deeda821b05042c39c">const_iterator</a>&#160;</td>
           <td class="paramname"><em>hint</em>, </td>
@@ -3196,7 +3196,7 @@ template&lt;class ValueType, class KeySelect, class ValueSelect, class Hash, cla
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr float <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">tsl::detail_ordered_hash::ordered_hash</a>&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, ValueTypeContainer &gt;::DEFAULT_MAX_LOAD_FACTOR = 0.9f</td>
+          <td class="memname">constexpr float <a class="el" href="classtsl_1_1detail__ordered__hash_1_1ordered__hash.html">tsl::detail_ordered_hash::ordered_hash</a>&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, ValueTypeContainer &gt;::DEFAULT_MAX_LOAD_FACTOR = 0.75f</td>
         </tr>
       </table>
   </td>
@@ -3209,7 +3209,7 @@ template&lt;class ValueType, class KeySelect, class ValueSelect, class Hash, cla
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>src/<a class="el" href="ordered__hash_8h_source.html">ordered_hash.h</a></li>
+<li>tsl/<a class="el" href="ordered__hash_8h_source.html">ordered_hash.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
