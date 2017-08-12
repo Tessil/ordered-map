@@ -39,7 +39,7 @@
 #include <vector>
 
 #include "utils.h"
-#include "ordered_map.h"
+#include "tsl/ordered_map.h"
 
 
 BOOST_AUTO_TEST_SUITE(test_ordered_map)

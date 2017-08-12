@@ -14,7 +14,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 **Note**: The library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.
 
 ### Key features
-- Header-only library, just include [src/](src/) to your include path and you are ready to go.
+- Header-only library, just add the project to your include path and you are ready to go.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage.
 - Provide random access iterators and also reverse iterators.
@@ -39,7 +39,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 These differences also apply between `std::unordered_set` and `tsl::ordered_set`.
 
 ### Installation
-To use ordered-map, just add the [src/](src/) directory to your include path. It is a **header-only** library.
+To use ordered-map, just add the project to your include path. It is a **header-only** library.
 
 The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
@@ -63,8 +63,8 @@ The API can be found [here](https://tessil.github.io/ordered-map/doc/html/).
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include "ordered_map.h"
-#include "ordered_set.h"
+#include <tsl/ordered_map.h>
+#include <tsl/ordered_set.h>
 
 int main() {
     tsl::ordered_map<char, int> map = {{'d', 1}, {'a', 2}, {'g', 3}};
@@ -118,7 +118,7 @@ Both `KeyEqual` and `Hash` will need to be able to deal with the different types
 #include <functional>
 #include <iostream>
 #include <string>
-#include "ordered_map.h"
+#include <tsl/ordered_map.h>
 
 
 struct employee {

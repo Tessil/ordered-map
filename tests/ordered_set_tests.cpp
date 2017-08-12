@@ -1,17 +1,3 @@
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
-#include <boost/mpl/list.hpp>
-#include <cstdint>
-#include <deque>
-#include <functional>
-#include <memory>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
-
-#include "utils.h"
 /**
  * MIT License
  * 
@@ -35,7 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "ordered_set.h"
+#define BOOST_TEST_DYN_LINK
+
+#include <boost/test/unit_test.hpp>
+#include <boost/mpl/list.hpp>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <memory>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+#include "utils.h"
+#include "tsl/ordered_set.h"
 
 
 BOOST_AUTO_TEST_SUITE(test_ordered_set)
