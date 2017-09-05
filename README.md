@@ -16,7 +16,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 ### Key features
 - Header-only library, just add the project to your include path and you are ready to go.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
-- O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage.
+- O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
 - Provide random access iterators and also reverse iterators.
 - Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](https://github.com/Tessil/ordered-map#heterogeneous-lookup)).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
