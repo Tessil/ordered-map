@@ -82,22 +82,22 @@ struct make_void {
 };
 
 template<typename T, typename = void>
-struct has_is_transparent : std::false_type {
+struct has_is_transparent: std::false_type {
 };
 
 template<typename T>
-struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
+struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type>: std::true_type {
 };
 
 
 template<typename T, typename = void>
-struct is_vector : std::false_type {
+struct is_vector: std::false_type {
 };
 
 template<typename T>
 struct is_vector<T, typename std::enable_if<
                         std::is_same<T, std::vector<typename T::value_type, typename T::allocator_type>>::value
-                    >::type> : std::true_type {
+                    >::type>: std::true_type {
 };
 
 
@@ -114,7 +114,7 @@ public:
     using truncated_hash_type = std::uint_least32_t;
     
     
-    bucket_entry() noexcept : m_index(EMPTY_MARKER_INDEX), m_hash(0) {
+    bucket_entry() noexcept: m_index(EMPTY_MARKER_INDEX), m_hash(0) {
     }
     
     bool empty() const noexcept {
@@ -265,7 +265,7 @@ public:
         ordered_iterator() noexcept {
         }
         
-        ordered_iterator(const ordered_iterator<false>& other) noexcept : m_iterator(other.m_iterator) {
+        ordered_iterator(const ordered_iterator<false>& other) noexcept: m_iterator(other.m_iterator) {
         }
 
         const typename ordered_hash::key_type& key() const {
@@ -351,8 +351,8 @@ public:
                  const Hash& hash,
                  const KeyEqual& equal,
                  const Allocator& alloc,
-                 float max_load_factor) : Hash(hash), KeyEqual(equal), m_buckets(alloc), 
-                                          m_values(alloc), m_grow_on_next_insert(false)
+                 float max_load_factor): Hash(hash), KeyEqual(equal), m_buckets(alloc), 
+                                         m_values(alloc), m_grow_on_next_insert(false)
     {
         bucket_count = round_up_to_power_of_two(bucket_count);
         if(bucket_count > max_bucket_count()) {
@@ -845,9 +845,9 @@ public:
     template<class K, class... Args>
     std::pair<iterator, bool> try_emplace_at_position(const_iterator pos, K&& key, Args&&... value_args) {
         return insert_at_position_impl(pos.m_iterator, key, 
-                                           std::piecewise_construct, 
-                                           std::forward_as_tuple(std::forward<K>(key)), 
-                                           std::forward_as_tuple(std::forward<Args>(value_args)...));
+                                       std::piecewise_construct, 
+                                       std::forward_as_tuple(std::forward<K>(key)), 
+                                       std::forward_as_tuple(std::forward<Args>(value_args)...));
     }
     
 
@@ -954,13 +954,13 @@ private:
      * Return bucket which has the key 'key' or m_buckets.end() if none.
      * 
      * From the bucket_for_hash, search for the value until we either find an empty bucket
-     * or a bucket which has a value with a distance from its initial bucket longer
+     * or a bucket which has a value with a distance from its ideal bucket longer
      * than the probe length for the value we are looking for.
      */
     template<class K>
     typename buckets_container_type::const_iterator find_key(const K& key, std::size_t hash) const {
-        for(std::size_t ibucket = bucket_for_hash(hash), dist_from_init_bucket = 0; ; 
-            ibucket = next_bucket(ibucket), dist_from_init_bucket++) 
+        for(std::size_t ibucket = bucket_for_hash(hash), dist_from_ideal_bucket = 0; ; 
+            ibucket = next_bucket(ibucket), dist_from_ideal_bucket++) 
         {
             if(m_buckets[ibucket].empty()) {
                 return m_buckets.end();
@@ -970,7 +970,7 @@ private:
             {
                 return m_buckets.begin() + ibucket;
             }
-            else if(dist_from_init_bucket > dist_from_initial_bucket(ibucket)) {
+            else if(dist_from_ideal_bucket > distance_from_ideal_bucket(ibucket)) {
                 return m_buckets.end();
             }
         }
@@ -1007,8 +1007,8 @@ private:
             truncated_hash_type insert_hash = old_bucket.truncated_hash();
             index_type insert_index = old_bucket.index();
             
-            for(std::size_t ibucket = bucket_for_hash(insert_hash), dist_from_init_bucket = 0; ; 
-                ibucket = next_bucket(ibucket), dist_from_init_bucket++) 
+            for(std::size_t ibucket = bucket_for_hash(insert_hash), dist_from_ideal_bucket = 0; ; 
+                ibucket = next_bucket(ibucket), dist_from_ideal_bucket++) 
             {
                 if(m_buckets[ibucket].empty()) {
                     m_buckets[ibucket].set_index(insert_index);
@@ -1016,11 +1016,11 @@ private:
                     break;
                 }
                 
-                const std::size_t distance = dist_from_initial_bucket(ibucket);
-                if(dist_from_init_bucket > distance) {
+                const std::size_t distance = distance_from_ideal_bucket(ibucket);
+                if(dist_from_ideal_bucket > distance) {
                     std::swap(insert_index, m_buckets[ibucket].index_ref());
                     std::swap(insert_hash, m_buckets[ibucket].truncated_hash_ref());
-                    dist_from_init_bucket = distance;
+                    dist_from_ideal_bucket = distance;
                 }
             }
         }
@@ -1037,14 +1037,14 @@ private:
     
     /**
      * Swap the empty bucket with the values on its right until we cross another empty bucket
-     * or if the other bucket has a dist_from_initial_bucket == 0.
+     * or if the other bucket has a distance_from_ideal_bucket == 0.
      */
     void backward_shift(std::size_t empty_ibucket) noexcept {
         tsl_assert(m_buckets[empty_ibucket].empty());
         
         std::size_t previous_ibucket = empty_ibucket;
         for(std::size_t current_ibucket = next_bucket(previous_ibucket); 
-            !m_buckets[current_ibucket].empty() && dist_from_initial_bucket(current_ibucket) > 0;
+            !m_buckets[current_ibucket].empty() && distance_from_ideal_bucket(current_ibucket) > 0;
             previous_ibucket = current_ibucket, current_ibucket = next_bucket(current_ibucket)) 
         {
             std::swap(m_buckets[current_ibucket], m_buckets[previous_ibucket]);
@@ -1117,9 +1117,9 @@ private:
         const std::size_t hash = hash_key(key);
         
         std::size_t ibucket = bucket_for_hash(hash); 
-        std::size_t dist_from_init_bucket = 0;
+        std::size_t dist_from_ideal_bucket = 0;
         
-        while(!m_buckets[ibucket].empty() && dist_from_init_bucket <= dist_from_initial_bucket(ibucket)) {
+        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
             if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
                compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
@@ -1127,7 +1127,7 @@ private:
             }
             
             ibucket = next_bucket(ibucket);
-            dist_from_init_bucket++;
+            dist_from_ideal_bucket++;
         }
         
         if(size() >= max_size()) {
@@ -1137,7 +1137,7 @@ private:
         
         if(grow_on_high_load()) {
             ibucket = bucket_for_hash(hash);
-            dist_from_init_bucket = 0;
+            dist_from_ideal_bucket = 0;
         }
         
         
@@ -1149,7 +1149,7 @@ private:
         m_values.emplace(insert_position, std::forward<Args>(value_type_args)...);
 #endif        
 
-        insert_index(ibucket, dist_from_init_bucket, 
+        insert_index(ibucket, dist_from_ideal_bucket, 
                      index_insert_position, bucket_entry::truncate_hash(hash));
         
         /*
@@ -1163,24 +1163,24 @@ private:
         return std::make_pair(iterator(m_values.begin() + index_insert_position), true);
     }
     
-    void insert_index(std::size_t ibucket, std::size_t dist_from_init_bucket, 
+    void insert_index(std::size_t ibucket, std::size_t dist_from_ideal_bucket, 
                       index_type index_insert, truncated_hash_type hash_insert) noexcept
     {
         while(!m_buckets[ibucket].empty()) {
-            const std::size_t distance = dist_from_initial_bucket(ibucket);
-            if(dist_from_init_bucket > distance) {
+            const std::size_t distance = distance_from_ideal_bucket(ibucket);
+            if(dist_from_ideal_bucket > distance) {
                 std::swap(index_insert, m_buckets[ibucket].index_ref());
                 std::swap(hash_insert, m_buckets[ibucket].truncated_hash_ref());
                 
-                dist_from_init_bucket = distance;
+                dist_from_ideal_bucket = distance;
             }
 
             
             ibucket = next_bucket(ibucket);
-            dist_from_init_bucket++;
+            dist_from_ideal_bucket++;
             
             
-            if(dist_from_init_bucket > REHASH_ON_HIGH_NB_PROBES__NPROBES && !m_grow_on_next_insert &&
+            if(dist_from_ideal_bucket > REHASH_ON_HIGH_NB_PROBES__NPROBES && !m_grow_on_next_insert &&
                load_factor() >= REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR)
             {
                 // We don't want to grow the map now as we need this method to be noexcept.
@@ -1194,16 +1194,16 @@ private:
         m_buckets[ibucket].set_hash(hash_insert); 
     }
     
-    std::size_t dist_from_initial_bucket(std::size_t ibucket) const noexcept {
-        const std::size_t initial_bucket = bucket_for_hash(m_buckets[ibucket].truncated_hash());
+    std::size_t distance_from_ideal_bucket(std::size_t ibucket) const noexcept {
+        const std::size_t ideal_bucket = bucket_for_hash(m_buckets[ibucket].truncated_hash());
         
-        if(ibucket >= initial_bucket) {
-            return ibucket - initial_bucket;
+        if(ibucket >= ideal_bucket) {
+            return ibucket - ideal_bucket;
         }
-        // If the bucket is smaller than the initial bucket for the value, there was a wrapping at the end of the 
+        // If the bucket is smaller than the ideal bucket for the value, there was a wrapping at the end of the 
         // bucket array due to the modulo.
         else {
-            return (bucket_count() + ibucket) - initial_bucket;
+            return (bucket_count() + ibucket) - ideal_bucket;
         }
     }
     

@@ -126,29 +126,29 @@ public:
     /*
      * Constructors
      */
-    ordered_map() : ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {
+    ordered_map(): ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {
     }
     
     explicit ordered_map(size_type bucket_count, 
                          const Hash& hash = Hash(),
                          const KeyEqual& equal = KeyEqual(),
-                         const Allocator& alloc = Allocator()) : 
+                         const Allocator& alloc = Allocator()): 
                      m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
     {
     }
     
     ordered_map(size_type bucket_count,
-                const Allocator& alloc) : ordered_map(bucket_count, Hash(), KeyEqual(), alloc)
+                const Allocator& alloc): ordered_map(bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
     ordered_map(size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : ordered_map(bucket_count, hash, KeyEqual(), alloc)
+                const Allocator& alloc): ordered_map(bucket_count, hash, KeyEqual(), alloc)
     {
     }
     
-    explicit ordered_map(const Allocator& alloc) : ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
+    explicit ordered_map(const Allocator& alloc): ordered_map(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
     }
     
     template<class InputIt>
@@ -156,7 +156,7 @@ public:
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
-                const Allocator& alloc = Allocator()) : ordered_map(bucket_count, hash, equal, alloc)
+                const Allocator& alloc = Allocator()): ordered_map(bucket_count, hash, equal, alloc)
     {
         insert(first, last);
     }
@@ -164,7 +164,7 @@ public:
     template<class InputIt>
     ordered_map(InputIt first, InputIt last,
                 size_type bucket_count,
-                const Allocator& alloc) : ordered_map(first, last, bucket_count, Hash(), KeyEqual(), alloc)
+                const Allocator& alloc): ordered_map(first, last, bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
@@ -172,7 +172,7 @@ public:
     ordered_map(InputIt first, InputIt last,
                 size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : ordered_map(first, last, bucket_count, hash, KeyEqual(), alloc)
+                const Allocator& alloc): ordered_map(first, last, bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
@@ -180,14 +180,14 @@ public:
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
-                const Allocator& alloc = Allocator()) : 
+                const Allocator& alloc = Allocator()): 
             ordered_map(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
 
     ordered_map(std::initializer_list<value_type> init,
                 size_type bucket_count,
-                const Allocator& alloc) : 
+                const Allocator& alloc): 
             ordered_map(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
@@ -195,7 +195,7 @@ public:
     ordered_map(std::initializer_list<value_type> init,
                 size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : 
+                const Allocator& alloc): 
             ordered_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
     {
     }
