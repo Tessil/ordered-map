@@ -219,7 +219,7 @@ private:
     
     
 public:
-    template<bool is_const>
+    template<bool IsConst>
     class ordered_iterator;
     
     using key_type = typename KeySelect::key_type;
@@ -241,12 +241,12 @@ public:
     using values_container_type = ValueTypeContainer;
     
 public:
-    template<bool is_const>
+    template<bool IsConst>
     class ordered_iterator {
         friend class ordered_hash;
         
     private:
-        using iterator = typename std::conditional<is_const, 
+        using iterator = typename std::conditional<IsConst, 
                                                     typename values_container_type::const_iterator, 
                                                     typename values_container_type::iterator>::type;
     
@@ -272,12 +272,12 @@ public:
             return KeySelect()(*m_iterator);
         }
 
-        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && is_const>::type* = nullptr>
+        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && IsConst>::type* = nullptr>
         const typename U::value_type& value() const {
             return U()(*m_iterator);
         }
 
-        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && !is_const>::type* = nullptr>
+        template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value && !IsConst>::type* = nullptr>
         typename U::value_type& value() {
             return U()(*m_iterator);
         }
@@ -360,9 +360,6 @@ public:
         }
         tsl_assert(bucket_count > 0);
         
-        
-        // Can't directly construct with the appropriate size in the initializer 
-        // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
         m_buckets.resize(bucket_count);
         m_mask = bucket_count - 1; 
         
