@@ -14,6 +14,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 **Note**: The library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.
 
 ### Key features
+
 - Header-only library, just add the project to your include path and you are ready to go.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
@@ -22,6 +23,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
+
 - The iterators are `RandomAccessIterator`.
 - Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
 - Slow `erase()` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/) for details). An O(1) `pop_back()` is also available.
@@ -60,9 +62,11 @@ make
 ```
 
 ### Usage
+
 The API can be found [here](https://tessil.github.io/ordered-map/).
 
 ### Example
+
 ```c++
 #include <iostream>
 #include <string>
