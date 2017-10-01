@@ -366,19 +366,22 @@ BOOST_AUTO_TEST_CASE(test_range_erase_all) {
 }
 
 BOOST_AUTO_TEST_CASE(test_range_erase) {
-    // insert x values, delete all except first and last value
+    // insert x values, delete all except 10 first and 10 last value
     using HMap = tsl::ordered_map<std::string, std::int64_t>;
     
     const std::size_t nb_values = 1000;
     HMap map = utils::get_filled_hash_map<HMap>(nb_values);
     
-    auto it = map.erase(map.begin() + 1, map.end() - 1);
-    BOOST_CHECK(it == map.end() - 1);
-    BOOST_CHECK_EQUAL(map.size(), 2);
+    auto it = map.erase(map.begin() + 10, map.end() - 10);
+    BOOST_CHECK(it == map.end() - 10);
+    BOOST_CHECK_EQUAL(map.size(), 20);
+    BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 20);
     
-    BOOST_CHECK_EQUAL(map.at(utils::get_key<std::string>(0)), utils::get_value<std::int64_t>(0));
-    BOOST_CHECK_EQUAL(map.at(utils::get_key<std::string>(nb_values - 1)), 
-                             utils::get_value<std::int64_t>(nb_values-1)); 
+    for(std::size_t i = 0; i < 10; i++) {
+        BOOST_CHECK_EQUAL(map.at(utils::get_key<std::string>(i)), utils::get_value<std::int64_t>(i));
+        BOOST_CHECK_EQUAL(map.at(utils::get_key<std::string>(nb_values - 10 + i)), 
+                                 utils::get_value<std::int64_t>(nb_values - 10 + i));
+    }
 }
 
 
