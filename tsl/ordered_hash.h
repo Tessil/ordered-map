@@ -213,9 +213,16 @@ private:
     using has_mapped_type = typename std::integral_constant<bool, !std::is_same<U, void>::value>;
     
     static_assert(std::is_same<typename ValueTypeContainer::value_type, ValueType>::value, 
-                  "ValueTypeContainer::value_type != ValueType.");
+                  "ValueTypeContainer::value_type != ValueType. "
+                  "Check that the ValueTypeContainer has 'Key' as type for a set or 'std::pair<Key, T>' as type for a map.");
+    
     static_assert(std::is_same<typename ValueTypeContainer::allocator_type, Allocator>::value, 
-                  "ValueTypeContainer::allocator_type != Allocator.");
+                  "ValueTypeContainer::allocator_type != Allocator. "
+                  "Check that the allocator for ValueTypeContainer is the same as Allocator.");
+    
+    static_assert(std::is_same<typename Allocator::value_type, ValueType>::value, 
+                  "Allocator::value_type != ValueType. "
+                  "Check that the allocator has 'Key' as type for a set or 'std::pair<Key, T>' as type for a map.");
     
     
 public:
