@@ -77,7 +77,7 @@
  * If exceptions are enabled, throw the exception passed in parameter, otherwise std::abort.
  */
 #ifndef TSL_THROW_OR_ABORT
-    #if defined(__cpp_exceptions) || (defined (_MSC_VER) && defined (__CPPUNWIND))
+    #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (__CPPUNWIND))
     #define TSL_THROW_OR_ABORT(ex) throw ex
     #else
     #define TSL_THROW_OR_ABORT(ex) std::abort()
