@@ -31,6 +31,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <iterator>
 #include <limits>
@@ -58,7 +59,7 @@
 #endif
 
 
-/*
+/**
  * Only activate tsl_assert if TSL_DEBUG is defined. 
  * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
@@ -71,6 +72,17 @@
     #endif
 #endif
 
+
+/**
+ * If exceptions are enabled, throw the exception passed in parameter, otherwise std::abort.
+ */
+#ifndef TSL_THROW_OR_ABORT
+    #if defined(__cpp_exceptions) || (defined (_MSC_VER) && defined (__CPPUNWIND))
+    #define TSL_THROW_OR_ABORT(ex) throw ex
+    #else
+    #define TSL_THROW_OR_ABORT(ex) std::abort()
+    #endif
+#endif
 
 namespace tsl {
 
@@ -363,7 +375,7 @@ public:
     {
         bucket_count = round_up_to_power_of_two(bucket_count);
         if(bucket_count > max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            TSL_THROW_OR_ABORT(std::length_error("The map exceeds its maxmimum size."));
         }
         tsl_assert(bucket_count > 0);
         
@@ -670,7 +682,7 @@ public:
             return it.value();
         }
         else {
-            throw std::out_of_range("Couldn't find the key.");
+            TSL_THROW_OR_ABORT(std::out_of_range("Couldn't find the key."));
         }
     }
     
@@ -989,7 +1001,7 @@ private:
         }
         
         if(bucket_count > max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            TSL_THROW_OR_ABORT(std::length_error("The map exceeds its maxmimum size."));
         }
         
         
@@ -1135,7 +1147,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            throw std::length_error("We reached the maximum size for the hash table.");
+            TSL_THROW_OR_ABORT(std::length_error("We reached the maximum size for the hash table."));
         }
         
         
