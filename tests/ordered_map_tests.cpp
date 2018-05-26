@@ -811,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_copy_constructor_operator) {
     
     HMap map_copy = map;
     HMap map_copy2(map);
-    HMap map_copy3;
+    HMap map_copy3 = utils::get_filled_hash_map<HMap>(1);
     map_copy3 = map;
     
     BOOST_CHECK(map == map_copy);
