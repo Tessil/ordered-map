@@ -1106,9 +1106,44 @@ private:
         }
     }
     
+    /**
+     * Insert the element at the end.
+     */
     template<class K, class... Args>
     std::pair<iterator, bool> insert_impl(const K& key, Args&&... value_type_args) {
-        return insert_at_position_impl(m_values.cend(), key, std::forward<Args>(value_type_args)...);
+        const std::size_t hash = hash_key(key);
+        
+        std::size_t ibucket = bucket_for_hash(hash); 
+        std::size_t dist_from_ideal_bucket = 0;
+        
+        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+            {
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+            }
+            
+            ibucket = next_bucket(ibucket);
+            dist_from_ideal_bucket++;
+        }
+        
+        if(size() >= max_size()) {
+            throw std::length_error("We reached the maximum size for the hash table.");
+        }
+        
+        
+        if(grow_on_high_load()) {
+            ibucket = bucket_for_hash(hash);
+            dist_from_ideal_bucket = 0;
+        }
+        
+                
+        m_values.emplace_back(std::forward<Args>(value_type_args)...);
+        insert_index(ibucket, dist_from_ideal_bucket, 
+                     index_type(m_values.size() - 1), bucket_entry::truncate_hash(hash));
+        
+        
+        return std::make_pair(std::prev(end()), true);
     }
     
     /**

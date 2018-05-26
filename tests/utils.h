@@ -46,7 +46,7 @@ public:
 
 class move_only_test {
 public:
-    explicit move_only_test(std::int64_t value) : m_value(new std::int64_t(value)) {
+    explicit move_only_test(std::int64_t value): m_value(new std::int64_t(value)) {
     }
     
     move_only_test(const move_only_test&) = delete;
@@ -87,10 +87,49 @@ private:
 };
 
 
+class copy_constructible_only_test {
+public:
+    explicit copy_constructible_only_test(std::int64_t value): m_value(value) {
+    }
+    
+    copy_constructible_only_test(const copy_constructible_only_test&) = default;
+    copy_constructible_only_test(copy_constructible_only_test&&) = delete;
+    copy_constructible_only_test& operator=(const copy_constructible_only_test&) = delete;
+    copy_constructible_only_test& operator=(copy_constructible_only_test&&) = delete;
+    
+    friend std::ostream& operator<<(std::ostream& stream, const copy_constructible_only_test& value) {
+        stream << value.m_value;
+        return stream;
+    }
+    
+    friend bool operator==(const copy_constructible_only_test& lhs, const copy_constructible_only_test& rhs) {
+        return lhs.m_value == rhs.m_value;
+    }
+    
+    friend bool operator!=(const copy_constructible_only_test& lhs, const copy_constructible_only_test& rhs) { 
+        return !(lhs == rhs); 
+    }
+    
+    std::int64_t value() const {
+        return m_value;
+    }
+    
+private:    
+    std::int64_t m_value;
+};
+
+
 namespace std {
     template<>
     struct hash<move_only_test> {
         std::size_t operator()(const move_only_test& val) const {
+            return std::hash<std::int64_t>()(val.value());
+        }
+    };
+    
+    template<>
+    struct hash<copy_constructible_only_test> {
+        std::size_t operator()(const copy_constructible_only_test& val) const {
             return std::hash<std::int64_t>()(val.value());
         }
     };

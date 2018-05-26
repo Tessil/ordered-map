@@ -166,6 +166,19 @@ BOOST_AUTO_TEST_CASE(test_insert_with_hint) {
     BOOST_CHECK_EQUAL(map.size(), 5);
 }
 
+
+BOOST_AUTO_TEST_CASE(test_insert_copy_constructible_only_values) {
+    // Test that an ordered_map with copy constructible only objects compiles
+    const std::size_t nb_values = 100;
+    
+    tsl::ordered_map<copy_constructible_only_test, copy_constructible_only_test> map;
+    for(std::size_t i = 0; i < nb_values; i++) {
+        map.insert({copy_constructible_only_test(i), copy_constructible_only_test(i*2)});
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+}
+
 /**
  * emplace
  */
