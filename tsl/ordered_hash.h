@@ -77,7 +77,7 @@
  * If exceptions are enabled, throw the exception passed in parameter, otherwise std::terminate.
  */
 #ifndef TSL_THROW_OR_TERMINATE
-    #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))
+    #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))) && !defined(TSL_NO_EXCEPTIONS)
     #define TSL_THROW_OR_TERMINATE(ex) throw ex
     #else
     #define TSL_THROW_OR_TERMINATE(ex) std::terminate()
