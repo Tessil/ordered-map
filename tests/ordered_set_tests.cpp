@@ -41,9 +41,7 @@
 BOOST_AUTO_TEST_SUITE(test_ordered_set)
 
 
-using test_types = boost::mpl::list<tsl::ordered_set<std::int64_t, std::hash<std::int64_t>, std::equal_to<std::int64_t>, 
-                                                     std::allocator<std::int64_t>, 
-                                                     std::deque<std::int64_t>>, 
+using test_types = boost::mpl::list<tsl::ordered_set<std::int64_t>, 
                                     tsl::ordered_set<std::int64_t, std::hash<std::int64_t>, std::equal_to<std::int64_t>, 
                                                      std::allocator<std::int64_t>, 
                                                      std::vector<std::int64_t>>, 
