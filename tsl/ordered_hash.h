@@ -1140,7 +1140,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            throw std::length_error("We reached the maximum size for the hash table.");
+            TSL_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
         }
         
         
