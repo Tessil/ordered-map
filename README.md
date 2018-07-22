@@ -8,7 +8,7 @@ The values are stored contiguously in an underlying structure, no holes in-betwe
 
 To resolve collisions on hashes, the library uses robin hood probing with backward shift deletion.
 
-The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per entry if the load factor is 1, around 16 bytes per entry for a 0.5 load factor).
+The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per bucket).
 
 Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
@@ -20,15 +20,16 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
 - Provide random access iterators and also reverse iterators.
-- Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](https://github.com/Tessil/ordered-map#heterogeneous-lookup)).
+- Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](#heterogeneous-lookup)).
+- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a7fcde27edc6697a0b127f4b1aefa8a7d)).
 - The library can be used with exceptions disabled (through `-fno-exceptions` option on Clang and GCC, without an `/EH` option on MSVC or simply by defining `TSL_NO_EXCEPTIONS`). `std::terminate` is used in replacement of the `throw` instruction when exceptions are disabled.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
-
+`tsl::ordered_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
 - The iterators are `RandomAccessIterator`.
-- Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
-- Slow `erase()` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/) for details). An O(1) `pop_back()` is also available.
+- Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
+- Slow `erase()` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a9f94a7889fa7fa92eea41ca63b3f98a4) for details). An O(1) `pop_back()` is also available.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 tsl::ordered_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
@@ -41,14 +42,16 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 - No support for some bucket related methods (like bucket_size, bucket, ...).
 
 
-Thread-safety guarantee is the same as `std::unordered_map` (possible to have multiple readers). Concerning the strong exception guarantee, it holds only if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type T is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
+Thread-safety guarantee is the same as `std::unordered_map`  (i.e. possible to have multiple concurrent readers with no writer).
+
+Concerning the strong exception guarantee, it holds only if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type T is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
 
 These differences also apply between `std::unordered_set` and `tsl::ordered_set`.
 
 
 ### Installation
 
-To use ordered-map, just add the project to your include path. It is a **header-only** library.
+To use the library, just add the project to your include path. It is a **header-only** library.
 
 The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
@@ -97,6 +100,11 @@ int main() {
     // Break order: {d, 1} {g, 3} {e, 6} {h, 5}
     for(const auto& key_value : map) {
         std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
+    }
+    
+    for(auto it = map.begin(); it != map.end(); ++it) {
+        //it->second += 2; // Not valid.
+        it.value() += 2;
     }
     
     
