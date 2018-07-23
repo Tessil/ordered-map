@@ -99,6 +99,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HSet, test_types) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_compare) {
+    const tsl::ordered_set<std::string> map = {"D", "L", "A"};
+    
+    BOOST_ASSERT(map == (tsl::ordered_set<std::string>{"D", "L", "A"}));
+    BOOST_ASSERT(map != (tsl::ordered_set<std::string>{"L", "D", "A"}));
+    
+    
+    BOOST_ASSERT(map < (tsl::ordered_set<std::string>{"D", "L", "B"}));
+    BOOST_ASSERT(map <= (tsl::ordered_set<std::string>{"D", "L", "B"}));
+    BOOST_ASSERT(map <= (tsl::ordered_set<std::string>{"D", "L", "A"}));
+    
+    BOOST_ASSERT(map > (tsl::ordered_set<std::string>{"D", {"K", 2}, "A"}));
+    BOOST_ASSERT(map >= (tsl::ordered_set<std::string>{"D", {"K", 2}, "A"}));
+    BOOST_ASSERT(map >= (tsl::ordered_set<std::string>{"D", "L", "A"}));
+}
+
 
 
 BOOST_AUTO_TEST_SUITE_END()

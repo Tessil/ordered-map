@@ -370,19 +370,87 @@ public:
                  const Hash& hash,
                  const KeyEqual& equal,
                  const Allocator& alloc,
-                 float max_load_factor): Hash(hash), KeyEqual(equal), m_buckets(alloc), 
-                                         m_values(alloc), m_grow_on_next_insert(false)
+                 float max_load_factor): Hash(hash),
+                                         KeyEqual(equal), 
+                                         m_buckets(alloc), 
+                                         m_first_or_empty_bucket(static_empty_bucket_ptr()), 
+                                         m_mask(0),
+                                         m_values(alloc), 
+                                         m_grow_on_next_insert(false)
     {
-        bucket_count = round_up_to_power_of_two(bucket_count);
         if(bucket_count > max_bucket_count()) {
             TSL_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
         }
-        tsl_assert(bucket_count > 0);
         
-        m_buckets.resize(bucket_count);
-        m_mask = bucket_count - 1; 
+        if(bucket_count > 0) {
+            bucket_count = round_up_to_power_of_two(bucket_count);
+            
+            m_buckets.resize(bucket_count);
+            m_first_or_empty_bucket = m_buckets.data(),
+            m_mask = bucket_count - 1; 
+        }
         
         this->max_load_factor(max_load_factor);
+    }
+    
+    ordered_hash(const ordered_hash& other): Hash(other),
+                                             KeyEqual(other),
+                                             m_buckets(other.m_buckets),
+                                             m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():m_buckets.data()),
+                                             m_mask(other.m_mask),
+                                             m_values(other.m_values),
+                                             m_grow_on_next_insert(other.m_grow_on_next_insert),
+                                             m_max_load_factor(other.m_max_load_factor),
+                                             m_load_threshold(other.m_load_threshold)
+    {
+    }
+    
+    ordered_hash(ordered_hash&& other) noexcept(std::is_nothrow_move_constructible<Hash>::value &&
+                                                std::is_nothrow_move_constructible<KeyEqual>::value &&
+                                                std::is_nothrow_move_constructible<buckets_container_type>::value &&
+                                                std::is_nothrow_move_constructible<values_container_type>::value)
+                                          : Hash(std::move(static_cast<Hash&>(other))),
+                                            KeyEqual(std::move(static_cast<KeyEqual&>(other))),
+                                            m_buckets(std::move(other.m_buckets)),
+                                            m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():m_buckets.data()),
+                                            m_mask(other.m_mask),
+                                            m_values(std::move(other.m_values)),
+                                            m_grow_on_next_insert(other.m_grow_on_next_insert),
+                                            m_max_load_factor(other.m_max_load_factor),
+                                            m_load_threshold(other.m_load_threshold)
+    {
+        other.m_buckets.clear();
+        other.m_first_or_empty_bucket = static_empty_bucket_ptr();
+        other.m_mask = 0;
+        other.m_values.clear();
+        other.m_grow_on_next_insert = false;
+        other.m_load_threshold = 0;
+    }
+    
+    ordered_hash& operator=(const ordered_hash& other) {
+        if(&other != this) {
+            Hash::operator=(other);
+            KeyEqual::operator=(other);
+            
+            m_buckets = other.m_buckets;
+            m_first_or_empty_bucket = m_buckets.empty()?static_empty_bucket_ptr():
+                                                        m_buckets.data();
+                                                        
+            m_mask = other.m_mask;
+            m_values = other.m_values;
+            m_grow_on_next_insert = other.m_grow_on_next_insert;
+            m_max_load_factor = other.m_max_load_factor;
+            m_load_threshold = other.m_load_threshold;
+        }
+        
+        return *this;
+    }
+    
+    ordered_hash& operator=(ordered_hash&& other) {
+        other.swap(*this);
+        other.clear();
+        
+        return *this;
     }
     
     allocator_type get_allocator() const {
@@ -562,7 +630,7 @@ public:
     
     /**
      * Here to avoid `template<class K> size_type erase(const K& key)` being used when
-     * we use a iterator instead of a const_iterator.
+     * we use an `iterator` instead of a `const_iterator`.
      */
     iterator erase(iterator pos) {
         return erase(const_iterator(pos));
@@ -647,6 +715,7 @@ public:
         swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
         swap(m_buckets, other.m_buckets);
+        swap(m_first_or_empty_bucket, other.m_first_or_empty_bucket);
         swap(m_mask, other.m_mask);
         swap(m_values, other.m_values);
         swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
@@ -769,6 +838,10 @@ public:
      *  Hash policy 
      */
     float load_factor() const {
+        if(bucket_count() == 0) {
+            return 0;
+        }
+        
         return float(size())/float(bucket_count());
     }
     
@@ -814,18 +887,22 @@ public:
     }
     
     iterator nth(size_type index) {
+        tsl_assert(index <= size());
         return iterator(m_values.begin() + index);
     }
     
     const_iterator nth(size_type index) const {
+        tsl_assert(index <= size());
         return const_iterator(m_values.cbegin() + index);
     }
     
     const_reference front() const {
+        tsl_assert(!empty());
         return m_values.front();
     }
     
     const_reference back() const {
+        tsl_assert(!empty());
         return m_values.back();
     }
     
@@ -978,11 +1055,11 @@ private:
         for(std::size_t ibucket = bucket_for_hash(hash), dist_from_ideal_bucket = 0; ; 
             ibucket = next_bucket(ibucket), dist_from_ideal_bucket++) 
         {
-            if(m_buckets[ibucket].empty()) {
+            if((m_first_or_empty_bucket + ibucket)->empty()) {
                 return m_buckets.end();
             }
-            else if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-                    compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+            else if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
+                    compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
             {
                 return m_buckets.begin() + ibucket;
             }
@@ -993,23 +1070,27 @@ private:
     }
     
     void rehash_impl(size_type bucket_count) {
-        bucket_count = round_up_to_power_of_two(bucket_count);
-        tsl_assert(bucket_count > 0);
-        
-        if(bucket_count == this->bucket_count()) {
-            return;
-        }
+        tsl_assert(bucket_count >= size_type(std::ceil(float(size())/max_load_factor())));
         
         if(bucket_count > max_bucket_count()) {
             TSL_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
         }
         
+        if(bucket_count > 0) {
+            bucket_count = round_up_to_power_of_two(bucket_count);
+        }
+        
+        if(bucket_count == this->bucket_count()) {
+            return;
+        }
+        
         
         buckets_container_type old_buckets(bucket_count);
         m_buckets.swap(old_buckets);
+        m_first_or_empty_bucket = m_buckets.data();
         // Everything should be noexcept from here.
         
-        m_mask = bucket_count - 1;
+        m_mask = (bucket_count > 0)?(bucket_count - 1):0;
         this->max_load_factor(m_max_load_factor);
         m_grow_on_next_insert = false;
         
@@ -1128,11 +1209,11 @@ private:
         std::size_t ibucket = bucket_for_hash(hash); 
         std::size_t dist_from_ideal_bucket = 0;
         
-        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
-            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+        while(!(m_first_or_empty_bucket + ibucket)->empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
+            if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
             {
-                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+                return std::make_pair(begin() + (m_first_or_empty_bucket + ibucket)->index(), false);
             }
             
             ibucket = next_bucket(ibucket);
@@ -1170,11 +1251,11 @@ private:
         std::size_t ibucket = bucket_for_hash(hash); 
         std::size_t dist_from_ideal_bucket = 0;
         
-        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
-            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
+        while(!(m_first_or_empty_bucket + ibucket)->empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
+            if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
             {
-                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
+                return std::make_pair(begin() + (m_first_or_empty_bucket + ibucket)->index(), false);
             }
             
             ibucket = next_bucket(ibucket);
@@ -1281,7 +1362,7 @@ private:
      */
     bool grow_on_high_load() {
         if(m_grow_on_next_insert || size() >= m_load_threshold) {
-            rehash_impl(bucket_count() * 2);
+            rehash_impl(std::max(size_type(1), bucket_count() * 2));
             m_grow_on_next_insert = false;
             
             return true;
@@ -1321,8 +1402,25 @@ private:
     static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
     static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
     
+    
+    /**
+     * Return an always valid pointer to an static empty bucket_entry with last_bucket() == true.
+     */            
+    bucket_entry* static_empty_bucket_ptr() {
+        static bucket_entry empty_bucket;
+        return &empty_bucket;
+    }
+    
 private:
     buckets_container_type m_buckets;
+    
+    /**
+     * Points to m_buckets.data() if !m_buckets.empty() otherwise points to static_empty_bucket_ptr.
+     * This variable is useful to avoid the cost of checking if m_buckets is empty when trying 
+     * to find an element.
+     */
+    bucket_entry* m_first_or_empty_bucket;
+    
     size_type m_mask;
     
     values_container_type m_values;

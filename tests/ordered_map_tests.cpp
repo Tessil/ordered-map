@@ -63,8 +63,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     using key_tt = typename HMap::key_type; using value_tt = typename HMap:: mapped_type;
     
     const std::size_t nb_values = 1000;
+    HMap map(0);
+    BOOST_CHECK_EQUAL(map.bucket_count(), 0);
     
-    HMap map;
     typename HMap::iterator it;
     bool inserted;
     
@@ -416,6 +417,30 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
     BOOST_CHECK(map.empty());
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop_range, HMap, test_types) {
+    // insert x values, delete all five by five
+    const std::size_t range = 5;
+    std::size_t nb_values = 1000;
+    
+    BOOST_REQUIRE_EQUAL(nb_values % 5, 0);
+    
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map2 = utils::get_filled_hash_map<HMap>(nb_values);
+    
+    auto it = map.begin();
+    // Use second map to check for key after delete as we may not copy the key with move-only types.
+    auto it2 = map2.begin();
+    while(it != map.end()) {
+        it = map.erase(it, std::next(it, range));
+        nb_values -= range;
+        
+        BOOST_CHECK_EQUAL(map.size(), nb_values);
+        it2 = std::next(it2, range);
+    }
+    
+    BOOST_CHECK(map.empty());
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_erase_insert, HMap, test_types) {
     // insert x/2 values, delete x/4 values, insert x/2 values, find each value, check order of values
     using key_tt = typename HMap::key_type; using value_tt = typename HMap:: mapped_type;
@@ -466,6 +491,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_erase_insert, HMap, test_types) {
         else {
             it = map.find(utils::get_key<key_tt>(i));
             
+            BOOST_REQUIRE(it != map.end());
             BOOST_CHECK_EQUAL(it->first, utils::get_key<key_tt>(i));
             BOOST_CHECK_EQUAL(it->second, utils::get_value<value_tt>(i));
         }
@@ -527,6 +553,23 @@ BOOST_AUTO_TEST_CASE(test_unordered_erase) {
     }
     
     BOOST_CHECK_EQUAL(map.size(), 0);
+}
+
+/**
+ * rehash
+ */
+BOOST_AUTO_TEST_CASE(test_rehash_empty) {
+    const std::size_t nb_values = 100;
+    auto map = utils::get_filled_hash_map<tsl::ordered_map<std::int64_t, std::int64_t>>(nb_values);
+    
+    const std::size_t bucket_count = map.bucket_count();
+    BOOST_CHECK(bucket_count >= nb_values);
+    
+    map.clear();
+    BOOST_CHECK_EQUAL(map.bucket_count(), bucket_count);
+    
+    map.rehash(0);
+    BOOST_CHECK_EQUAL(map.bucket_count(), 0);
 }
 
 
@@ -722,6 +765,15 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
 
 
 /**
+ * constructor
+ */
+BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
+    BOOST_CHECK_THROW((tsl::ordered_map<int, int>(std::numeric_limits<std::size_t>::max())), std::length_error);
+}
+
+
+
+/**
  * operator=(std::initializer_list)
  */
 BOOST_AUTO_TEST_CASE(test_assign_operator) {
@@ -830,6 +882,51 @@ BOOST_AUTO_TEST_CASE(test_copy_constructor_operator) {
     BOOST_CHECK(map_copy == map_copy3);
 }
 
+BOOST_AUTO_TEST_CASE(test_use_after_move_constructor) {
+    using HMap = tsl::ordered_map<std::string, move_only_test>;
+    
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map_move(std::move(map));
+    
+    
+    BOOST_CHECK(map == (HMap()));
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK_EQUAL(map.bucket_count(), 0);
+    BOOST_CHECK_EQUAL(map.erase("a"), 0);
+    BOOST_CHECK(map.find("a") == map.end());
+    
+    for(std::size_t i = 0; i < nb_values; i++) {
+        map.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+    BOOST_CHECK(map == map_move);
+}
+
+BOOST_AUTO_TEST_CASE(test_use_after_move_operator) {
+    using HMap = tsl::ordered_map<std::string, move_only_test>;
+    
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map_move(0);
+    map_move = std::move(map);
+    
+    
+    BOOST_CHECK(map == (HMap()));
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK_EQUAL(map.bucket_count(), 0);
+    BOOST_CHECK_EQUAL(map.erase("a"), 0);
+    BOOST_CHECK(map.find("a") == map.end());
+    
+    for(std::size_t i = 0; i < nb_values; i++) {
+        map.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+    BOOST_CHECK(map == map_move);
+}
+
 
 /**
  * at
@@ -896,6 +993,12 @@ BOOST_AUTO_TEST_CASE(test_swap) {
     
     BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}}));
     BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}}));
+    
+    map.insert({6, 60});
+    map2.insert({4, 40});
+    
+    BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}, {6, 60}}));
+    BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}, {4, 40}}));
 }
 
 /**
@@ -1035,6 +1138,7 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
 BOOST_AUTO_TEST_CASE(test_empty_map) {
     tsl::ordered_map<std::string, int> map(0);
     
+    BOOST_CHECK_EQUAL(map.bucket_count(), 0);
     BOOST_CHECK_EQUAL(map.size(), 0);
     BOOST_CHECK(map.empty());
     
@@ -1064,8 +1168,8 @@ BOOST_AUTO_TEST_CASE(test_empty_map) {
  * Test precalculated hash
  */
 BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
-    tsl::ordered_map<int, int, std::hash<int>> map = {{1, -1}, {2, -2}, {3, -3}, {4, -4}, {5, -5}, {6, -6}};
-    const tsl::ordered_map<int, int> map_const = map;
+    tsl::ordered_map<int, int, identity_hash<int>> map = {{1, -1}, {2, -2}, {3, -3}, {4, -4}, {5, -5}, {6, -6}};
+    const tsl::ordered_map<int, int, identity_hash<int>> map_const = map;
     
     /**
      * find
