@@ -422,20 +422,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop_range, HMap, test_types) {
     const std::size_t range = 5;
     std::size_t nb_values = 1000;
     
-    BOOST_REQUIRE_EQUAL(nb_values % 5, 0);
+    BOOST_REQUIRE_EQUAL(nb_values % range, 0);
     
     HMap map = utils::get_filled_hash_map<HMap>(nb_values);
-    HMap map2 = utils::get_filled_hash_map<HMap>(nb_values);
     
     auto it = map.begin();
-    // Use second map to check for key after delete as we may not copy the key with move-only types.
-    auto it2 = map2.begin();
     while(it != map.end()) {
         it = map.erase(it, std::next(it, range));
         nb_values -= range;
         
         BOOST_CHECK_EQUAL(map.size(), nb_values);
-        it2 = std::next(it2, range);
     }
     
     BOOST_CHECK(map.empty());
