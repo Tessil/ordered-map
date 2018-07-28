@@ -1191,7 +1191,7 @@ private:
         for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
             // All the values in m_values have been shifted by delta. Find the bucket corresponding 
             // to the value m_values[ivalue]
-            const index_type old_index(ivalue - delta);
+            const index_type old_index = static_cast<index_type>(ivalue - delta);
             
             std::size_t ibucket = bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
             while(m_buckets[ibucket].index() != old_index) {
