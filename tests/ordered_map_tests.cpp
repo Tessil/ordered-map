@@ -759,6 +759,27 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
     }
 }
 
+/**
+ * max_size
+ */
+BOOST_AUTO_TEST_CASE(test_max_size) {
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, std::uint16_t> map;
+    BOOST_CHECK(map.max_size() <= std::numeric_limits<std::uint16_t>::max());
+    BOOST_CHECK(map.max_size() > std::numeric_limits<std::uint8_t>::max());
+    
+    
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, std::uint32_t> map2;
+    BOOST_CHECK(map2.max_size() <= std::numeric_limits<std::uint32_t>::max());
+    BOOST_CHECK(map2.max_size() > std::numeric_limits<std::uint16_t>::max());
+    
+    
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, std::uint64_t> map3;
+    BOOST_CHECK(map3.max_size() <= std::numeric_limits<std::uint64_t>::max());
+    BOOST_CHECK(map3.max_size() > std::numeric_limits<std::uint32_t>::max());
+}
 
 /**
  * constructor
