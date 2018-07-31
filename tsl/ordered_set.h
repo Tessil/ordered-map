@@ -26,6 +26,7 @@
 
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <initializer_list>
@@ -52,6 +53,10 @@ namespace tsl {
  * 
  * The behaviour of the hash set is undefinded if the destructor of Key throws an exception.
  * 
+ * By default the maximum size of a set is limited to 2^32 - 1 values, if needed this can be changed through
+ * the IndexType template parameter. Using an `uint64_t` will raise this limit to 2^64 - 1 values but each
+ * bucket will use 16 bytes instead of 8 bytes in addition to the space needed to store the values.
+ * 
  * Iterators invalidation:
  *  - clear, operator=, reserve, rehash: always invalidate the iterators (also invalidate end()).
  *  - insert, emplace, emplace_hint, operator[]: when a std::vector is used as ValueTypeContainer 
@@ -65,7 +70,8 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<Key>,
-         class ValueTypeContainer = std::deque<Key, Allocator>>
+         class ValueTypeContainer = std::deque<Key, Allocator>,
+         class IndexType = std::uint_least32_t>
 class ordered_set {
 private:
     template<typename U>
@@ -85,7 +91,7 @@ private:
     };
     
     using ht = detail_ordered_hash::ordered_hash<Key, KeySelect, void,
-                                                 Hash, KeyEqual, Allocator, ValueTypeContainer>;
+                                                 Hash, KeyEqual, Allocator, ValueTypeContainer, IndexType>;
             
 public:
     using key_type = typename ht::key_type;

@@ -114,17 +114,24 @@ struct is_vector<T, typename std::enable_if<
 
 
 /**
- * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket's value 
- * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the hash of the value.
+ * Each bucket entry stores an index which is the index in m_values corresponding to the bucket's value 
+ * and a hash (which may be truncated to 32 bits depending on IndexType) corresponding to the hash of the value.
  * 
- * The 32-bit index limits the size of the map to 2^32 - 1 elements (-1 due to a reserved value used to mark a
- * bucket as empty).
+ * The size of IndexType limits the size of the hash table to std::numeric_limits<IndexType>::max() - 1 elements (-1 due to 
+ * a reserved value used to mark a bucket as empty).
  */
+template<class IndexType>
 class bucket_entry {
-public:
-    using index_type = std::uint_least32_t;
-    using truncated_hash_type = std::uint_least32_t;
+    static_assert(std::is_unsigned<IndexType>::value, "IndexType must be an unsigned value.");
+    static_assert(std::numeric_limits<IndexType>::max() <= std::numeric_limits<std::size_t>::max(), 
+                  "std::numeric_limits<IndexType>::max() must be <= std::numeric_limits<std::size_t>::max().");
     
+public:
+    using index_type = IndexType;
+    using truncated_hash_type = typename std::conditional<std::numeric_limits<IndexType>::max() <= 
+                                                          std::numeric_limits<std::uint_least32_t>::max(),
+                                                              std::uint_least32_t, 
+                                                              std::size_t>::type;
     
     bucket_entry() noexcept: m_index(EMPTY_MARKER_INDEX), m_hash(0) {
     }
@@ -174,7 +181,7 @@ public:
     }
     
     static std::size_t max_size() noexcept {
-        return std::numeric_limits<index_type>::max() - NB_RESERVED_INDEXES;
+        return static_cast<std::size_t>(std::numeric_limits<index_type>::max()) - NB_RESERVED_INDEXES;
     }
     
 private:
@@ -218,7 +225,8 @@ template<class ValueType,
          class Hash,
          class KeyEqual,
          class Allocator,
-         class ValueTypeContainer>
+         class ValueTypeContainer,
+         class IndexType>
 class ordered_hash: private Hash, private KeyEqual {
 private:
     template<typename U>
@@ -356,6 +364,8 @@ public:
     
     
 private:
+    using bucket_entry = tsl::detail_ordered_hash::bucket_entry<IndexType>;
+                                         
     using buckets_container_allocator = typename 
                             std::allocator_traits<allocator_type>::template rebind_alloc<bucket_entry>; 
                             
@@ -1155,10 +1165,10 @@ private:
         
         /*
          * m_values.erase shifted all the values on the right of the erased value, 
-         * shift the indexes by 1 in the buckets array for these values.
+         * shift the indexes by -1 in the buckets array for these values.
          */
         if(it_bucket->index() != m_values.size()) {
-            shift_indexes_in_buckets(it_bucket->index(), short(1));
+            shift_indexes_in_buckets(it_bucket->index(), char(-1));
         }        
         
         // Mark the bucket as empty and do a backward shift of the values on the right
@@ -1168,21 +1178,22 @@ private:
     
     /**
      * Go through each value from [from_ivalue, m_values.size()) in m_values and for each
-     * bucket corresponding to the value, shift the indexes to the left by delta.
+     * bucket corresponding to the value, shift the index by delta.
      */
-    void shift_indexes_in_buckets(index_type from_ivalue, short delta) noexcept  {
-        static_assert(std::is_unsigned<index_type>::value && sizeof(index_type) >= sizeof(short), 
-                      "index_type should be unsigned and sizeof(index_type) >= sizeof(short)");
+    void shift_indexes_in_buckets(index_type from_ivalue, char delta) noexcept  {
+        tsl_assert(delta == 1 || delta == -1);
         
         for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
-            std::size_t ibucket = bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
+            // All the values in m_values have been shifted by delta. Find the bucket corresponding 
+            // to the value m_values[ivalue]
+            const index_type old_index = static_cast<index_type>(ivalue - delta);
             
-            // Modulo arithmetic, we should be alright for index_type(ivalue + delta). TODO further checks
-            while(m_buckets[ibucket].index() != index_type(ivalue + delta)) {
+            std::size_t ibucket = bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
+            while(m_buckets[ibucket].index() != old_index) {
                 ibucket = next_bucket(ibucket);
             }
             
-            m_buckets[ibucket].set_index(index_type(m_buckets[ibucket].index() - delta));
+            m_buckets[ibucket].set_index(index_type(ivalue));
         }
     }
     
@@ -1289,7 +1300,7 @@ private:
          * we need to shift the indexes in m_buckets.
          */
         if(index_insert_position != m_values.size() - 1) {
-            shift_indexes_in_buckets(index_insert_position + 1, short(-1));
+            shift_indexes_in_buckets(index_insert_position + 1, char(1));
         }
         
         return std::make_pair(iterator(m_values.begin() + index_insert_position), true);

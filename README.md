@@ -8,7 +8,7 @@ The values are stored contiguously in an underlying structure, no holes in-betwe
 
 To resolve collisions on hashes, the library uses robin hood probing with backward shift deletion.
 
-The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per bucket).
+The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per bucket by default).
 
 Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
@@ -38,7 +38,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
-- The map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values.
+- By default the map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values. This can be raised through the `IndexType` class template parameter, check the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details. 
 - No support for some bucket related methods (like bucket_size, bucket, ...).
 
 

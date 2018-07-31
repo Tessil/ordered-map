@@ -759,6 +759,30 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
     }
 }
 
+/**
+ * max_size
+ */
+BOOST_AUTO_TEST_CASE(test_max_size) {
+    // TODO not compatible on systems with sizeof(std::size_t) < sizeof(std::uint32_t), will not build.
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, std::uint16_t> map;
+    BOOST_CHECK(map.max_size() <= std::numeric_limits<std::uint16_t>::max());
+    BOOST_CHECK(map.max_size() > std::numeric_limits<std::uint8_t>::max());
+    
+    
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, std::uint32_t> map2;
+    BOOST_CHECK(map2.max_size() <= std::numeric_limits<std::uint32_t>::max());
+    BOOST_CHECK(map2.max_size() > std::numeric_limits<std::uint16_t>::max());
+    
+    
+    using max_size_type = std::conditional<sizeof(std::size_t) == sizeof(std::uint64_t), std::uint64_t, std::uint32_t>::type;
+    using min_size_type = std::conditional<sizeof(std::size_t) == sizeof(std::uint64_t), std::uint32_t, std::uint16_t>::type;
+    tsl::ordered_map<int, int, std::hash<int>, std::equal_to<int>, 
+                     std::allocator<std::pair<int, int>>, std::vector<std::pair<int, int>>, max_size_type> map3;
+    BOOST_CHECK(map3.max_size() <= std::numeric_limits<max_size_type>::max());
+    BOOST_CHECK(map3.max_size() > std::numeric_limits<min_size_type>::max());
+}
 
 /**
  * constructor
