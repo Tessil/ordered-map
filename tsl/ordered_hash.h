@@ -114,21 +114,23 @@ struct is_vector<T, typename std::enable_if<
 
 
 /**
- * Each bucket entry stores a 32-bits index which is the index in m_values corresponding to the bucket's value 
- * and a 32 bits hash (truncated if the original was 64-bits) corresponding to the hash of the value.
+ * Each bucket entry stores an index which is the index in m_values corresponding to the bucket's value 
+ * and a hash (which may be truncated to 32 bits depending on IndexType) corresponding to the hash of the value.
  * 
- * The 32-bit index limits the size of the map to 2^32 - 1 elements (-1 due to a reserved value used to mark a
- * bucket as empty).
+ * The size of IndexType limits the size of the hash table to std::numeric_limits<IndexType>::max() - 1 elements (-1 due to 
+ * a reserved value used to mark a bucket as empty).
  */
-template<class IndexType, class TruncatedHashType>
+template<class IndexType>
 class bucket_entry {
     static_assert(std::is_unsigned<IndexType>::value, "IndexType must be an unsigned value.");
     static_assert(sizeof(IndexType) <= sizeof(std::size_t), "sizeof(IndexType) must be <= than sizeof(std::size_t).");
-    static_assert(std::is_unsigned<TruncatedHashType>::value, "TruncatedHashType must be an unsigned value.");
     
 public:
     using index_type = IndexType;
-    using truncated_hash_type = TruncatedHashType;
+    using truncated_hash_type = typename std::conditional<std::numeric_limits<IndexType>::max() <= 
+                                                          std::numeric_limits<std::uint_least32_t>::max(),
+                                                              std::uint_least32_t, 
+                                                              std::size_t>::type;
     
     bucket_entry() noexcept: m_index(EMPTY_MARKER_INDEX), m_hash(0) {
     }
@@ -361,15 +363,7 @@ public:
     
     
 private:
-    /**
-     * Use an uint_least64_t type for the hash if it doesn't increase the size of the bucket_entry,
-     * otherwise use an uint_least32_t type for the hash.
-     */
-    using bucket_entry = typename 
-                        std::conditional<sizeof(tsl::detail_ordered_hash::bucket_entry<IndexType, std::uint_least64_t>) == 
-                                         sizeof(tsl::detail_ordered_hash::bucket_entry<IndexType, std::uint_least32_t>),
-                                         tsl::detail_ordered_hash::bucket_entry<IndexType, std::uint_least64_t>,
-                                         tsl::detail_ordered_hash::bucket_entry<IndexType, std::uint_least32_t>>::type;
+    using bucket_entry = tsl::detail_ordered_hash::bucket_entry<IndexType>;
                                          
     using buckets_container_allocator = typename 
                             std::allocator_traits<allocator_type>::template rebind_alloc<bucket_entry>; 
