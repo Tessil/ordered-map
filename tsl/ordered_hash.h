@@ -122,13 +122,13 @@ struct is_vector<T, typename std::enable_if<
  */
 template<class IndexType, class TruncatedHashType>
 class bucket_entry {
+    static_assert(std::is_unsigned<IndexType>::value, "IndexType must be an unsigned value.");
+    static_assert(sizeof(IndexType) <= sizeof(std::size_t), "sizeof(IndexType) must be <= than sizeof(std::size_t).");
+    static_assert(std::is_unsigned<TruncatedHashType>::value, "TruncatedHashType must be an unsigned value.");
+    
 public:
     using index_type = IndexType;
     using truncated_hash_type = TruncatedHashType;
-    
-    static_assert(std::is_unsigned<index_type>::value, "IndexType must be an unsigned value.");
-    static_assert(sizeof(index_type) <= sizeof(std::size_t), "sizeof(IndexType) must be <= than sizeof(std::size_t).");
-    static_assert(std::is_unsigned<truncated_hash_type>::value, "TruncatedHashType must be an unsigned value.");
     
     bucket_entry() noexcept: m_index(EMPTY_MARKER_INDEX), m_hash(0) {
     }
@@ -178,7 +178,7 @@ public:
     }
     
     static std::size_t max_size() noexcept {
-        return static_cast<std::size_t>(std::numeric_limits<index_type>::max() - NB_RESERVED_INDEXES);
+        return static_cast<std::size_t>(std::numeric_limits<index_type>::max()) - NB_RESERVED_INDEXES;
     }
     
 private:
