@@ -123,7 +123,8 @@ struct is_vector<T, typename std::enable_if<
 template<class IndexType>
 class bucket_entry {
     static_assert(std::is_unsigned<IndexType>::value, "IndexType must be an unsigned value.");
-    static_assert(sizeof(IndexType) <= sizeof(std::size_t), "sizeof(IndexType) must be <= than sizeof(std::size_t).");
+    static_assert(std::numeric_limits<IndexType>::max() <= std::numeric_limits<std::size_t>::max(), 
+                  "std::numeric_limits<IndexType>::max() must be <= std::numeric_limits<std::size_t>::max().");
     
 public:
     using index_type = IndexType;
