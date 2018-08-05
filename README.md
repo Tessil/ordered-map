@@ -20,7 +20,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
 - Provide random access iterators and also reverse iterators.
-- Support for heterogeneous lookups allowing the usage of `find` with a type different than `Key` (e.g. if you have a map that uses `std::unique_ptr<foo>` as key, you could use a `foo*` or a `std::uintptr_t` as key parameter to `find` without constructing a `std::unique_ptr<foo>`, see [example](#heterogeneous-lookups)).
+- Support for heterogeneous lookups allowing the usage of `find` with a type different than `Key` (e.g. if you have a map that uses `std::unique_ptr<foo>` as key, you can use a `foo*` or a `std::uintptr_t` as key parameter to `find` without constructing a `std::unique_ptr<foo>`, see [example](#heterogeneous-lookups)).
 - If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see `precalculated_hash` parameter in [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a7fcde27edc6697a0b127f4b1aefa8a7d)).
 - The library can be used with exceptions disabled (through `-fno-exceptions` option on Clang and GCC, without an `/EH` option on MSVC or simply by defining `TSL_NO_EXCEPTIONS`). `std::terminate` is used in replacement of the `throw` instruction when exceptions are disabled.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
@@ -116,14 +116,14 @@ int main() {
     }
     
     
-    if(map.find("a") != map.end()) {
-        std::cout << "Found \"a\"." << std::endl;
+    if(map.find('d') != map.end()) {
+        std::cout << "Found 'd'." << std::endl;
     }
     
-    const std::size_t precalculated_hash = std::hash<std::string>()("a");
+    const std::size_t precalculated_hash = std::hash<char>()('d');
     // If we already know the hash beforehand, we can pass it as argument to speed-up the lookup.
-    if(map.find("a", precalculated_hash) != map.end()) {
-        std::cout << "Found \"a\" with hash " << precalculated_hash << "." << std::endl;
+    if(map.find('d', precalculated_hash) != map.end()) {
+        std::cout << "Found 'd' with hash " << precalculated_hash << "." << std::endl;
     }
     
     
