@@ -14,8 +14,9 @@ os:
   - osx  
 
 script:
+  - cd tests
   - mkdir build
   - cd build
   - cmake ..
   - make
-  - ./test_ordered_map
+  - ./tsl_ordered_map_tests
