@@ -6,13 +6,13 @@ The ordered-map library provides a hash map and a hash set which preserve the or
 
 The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs.
 
-To resolve collisions on hashes, the library uses robin hood probing with backward shift deletion.
+To resolve collisions on hashes, the library uses linear robin hood probing with backward shift deletion.
 
 The library provides a behaviour similar to a `std::deque/std::vector` with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per bucket by default).
 
 Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
-**Note**: The library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.
+**Note**: The library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performances, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.
 
 ### Key features
 
@@ -20,8 +20,8 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
 - Provide random access iterators and also reverse iterators.
-- Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](#heterogeneous-lookup)).
-- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a7fcde27edc6697a0b127f4b1aefa8a7d)).
+- Support for heterogeneous lookups allowing the usage of `find` with a type different than `Key` (e.g. if you have a map that uses `std::unique_ptr<foo>` as key, you could use a `foo*` or a `std::uintptr_t` as key parameter to `find` without constructing a `std::unique_ptr<foo>`, see [example](#heterogeneous-lookups)).
+- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see `precalculated_hash` parameter in [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a7fcde27edc6697a0b127f4b1aefa8a7d)).
 - The library can be used with exceptions disabled (through `-fno-exceptions` option on Clang and GCC, without an `/EH` option on MSVC or simply by defining `TSL_NO_EXCEPTIONS`). `std::terminate` is used in replacement of the `throw` instruction when exceptions are disabled.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
@@ -39,12 +39,12 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 }
 ```
 - By default the map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values. This can be raised through the `IndexType` class template parameter, check the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details. 
-- No support for some bucket related methods (like bucket_size, bucket, ...).
+- No support for some bucket related methods (like `bucket_size`, `bucket`, ...).
 
 
 Thread-safety guarantee is the same as `std::unordered_map`  (i.e. possible to have multiple concurrent readers with no writer).
 
-Concerning the strong exception guarantee, it holds only if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type T is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
+Concerning the strong exception guarantee, it holds only if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type `T` is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
 
 These differences also apply between `std::unordered_set` and `tsl::ordered_set`.
 
@@ -109,9 +109,21 @@ int main() {
         std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
     }
     
+    
     for(auto it = map.begin(); it != map.end(); ++it) {
         //it->second += 2; // Not valid.
         it.value() += 2;
+    }
+    
+    
+    if(map.find("a") != map.end()) {
+        std::cout << "Found \"a\"." << std::endl;
+    }
+    
+    const std::size_t precalculated_hash = std::hash<std::string>()("a");
+    // If we already know the hash beforehand, we can pass it as argument to speed-up the lookup.
+    if(map.find("a", precalculated_hash) != map.end()) {
+        std::cout << "Found \"a\" with hash " << precalculated_hash << "." << std::endl;
     }
     
     
@@ -147,10 +159,12 @@ Both `KeyEqual` and `Hash` will need to be able to deal with the different types
 #include <tsl/ordered_map.h>
 
 
+
 struct employee {
     employee(int id, std::string name) : m_id(id), m_name(std::move(name)) {
     }
     
+    // Either we include the comparators in the class and we use `std::equal_to<>`...
     friend bool operator==(const employee& empl, int empl_id) {
         return empl.m_id == empl_id;
     }
@@ -168,16 +182,7 @@ struct employee {
     std::string m_name;
 };
 
-struct hash_employee {
-    std::size_t operator()(const employee& empl) const {
-        return std::hash<int>()(empl.m_id);
-    }
-    
-    std::size_t operator()(int id) const {
-        return std::hash<int>()(id);
-    }
-};
-
+// ... or we implement a separate class to compare employees.
 struct equal_employee {
     using is_transparent = void;
     
@@ -191,6 +196,16 @@ struct equal_employee {
     
     bool operator()(const employee& empl1, const employee& empl2) const {
         return empl1.m_id == empl2.m_id;
+    }
+};
+
+struct hash_employee {
+    std::size_t operator()(const employee& empl) const {
+        return std::hash<int>()(empl.m_id);
+    }
+    
+    std::size_t operator()(int id) const {
+        return std::hash<int>()(id);
     }
 };
 
