@@ -16,7 +16,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 
 ### Key features
 
-- Header-only library, just add the project to your include path and you are ready to go.
+- Header-only library, just add the [include](include/) directory to your include path and you are ready to go. If you use CMake, you can also use the `tsl::ordered_map` exported target from the [CMakeLists.txt](CMakeLists.txt).
 - Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.
 - O(1) average time complexity for lookups with performances similar to `std::unordered_map` but with faster insertions and reduced memory usage (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for details).
 - Provide random access iterators and also reverse iterators.
@@ -51,7 +51,14 @@ These differences also apply between `std::unordered_set` and `tsl::ordered_set`
 
 ### Installation
 
-To use the library, just add the project to your include path. It is a **header-only** library.
+To use ordered-map, just add the [include](include/) directory to your include path. It is a **header-only** library.
+
+If you use CMake, you can also use the `tsl::ordered_map` exported target from the [CMakeLists.txt](CMakeLists.txt) with `target_link_libraries`. 
+```cmake
+# Example where the ordered-map project is stored in a third-party directory
+add_subdirectory(third-party/ordered-map)
+target_link_libraries(your_target PRIVATE tsl::ordered_map)  
+```
 
 The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
@@ -59,12 +66,12 @@ To run the tests you will need the Boost Test library and CMake.
 
 ```bash
 git clone https://github.com/Tessil/ordered-map.git
-cd ordered-map
+cd ordered-map/tests
 mkdir build
 cd build
 cmake ..
-make
-./test_ordered_map
+cmake --build .
+./tsl_ordered_map_tests 
 ```
 
 ### Usage
