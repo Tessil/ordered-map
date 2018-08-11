@@ -46,43 +46,32 @@
 /**
  * Macros for compatibility with GCC 4.8
  */
-#ifndef TSL_NO_CONTAINER_ERASE_CONST_ITERATOR
-    #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
-    #define TSL_NO_CONTAINER_ERASE_CONST_ITERATOR
-    #endif
+#if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
+#    define TSL_OH_NO_CONTAINER_ERASE_CONST_ITERATOR
+#    define TSL_OH_NO_CONTAINER_EMPLACE_CONST_ITERATOR
 #endif
-
-#ifndef TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
-    #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
-    #define TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
-    #endif
-#endif
-
 
 /**
- * Only activate tsl_assert if TSL_DEBUG is defined. 
- * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot
+ * Only activate tsl_oh_assert if TSL_DEBUG is defined. 
+ * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_oh_assert is used a lot
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
  */
-#ifndef tsl_assert
-    #ifdef TSL_DEBUG
-    #define tsl_assert(expr) assert(expr)
-    #else
-    #define tsl_assert(expr) (static_cast<void>(0))
-    #endif
+#ifdef TSL_DEBUG
+#    define tsl_oh_assert(expr) assert(expr)
+#else
+#    define tsl_oh_assert(expr) (static_cast<void>(0))
 #endif
 
 
 /**
  * If exceptions are enabled, throw the exception passed in parameter, otherwise std::terminate.
  */
-#ifndef TSL_THROW_OR_TERMINATE
-    #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))) && !defined(TSL_NO_EXCEPTIONS)
-    #define TSL_THROW_OR_TERMINATE(ex) throw ex
-    #else
-    #define TSL_THROW_OR_TERMINATE(ex) std::terminate()
-    #endif
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))) && !defined(TSL_NO_EXCEPTIONS)
+#    define TSL_OH_THROW_OR_TERMINATE(ex) throw ex
+#else
+#    define TSL_OH_THROW_OR_TERMINATE(ex) std::terminate()
 #endif
+
 
 namespace tsl {
 
@@ -145,28 +134,28 @@ public:
     }
     
     index_type index() const noexcept {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_index;
     }
     
     index_type& index_ref() noexcept {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_index;
     }
     
     void set_index(index_type index) noexcept {
-        tsl_assert(index <= max_size());
+        tsl_oh_assert(index <= max_size());
         
         m_index = index;
     }
     
     truncated_hash_type truncated_hash() const noexcept {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_hash;
     }
     
     truncated_hash_type& truncated_hash_ref() noexcept {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_hash;
     }
     
@@ -389,7 +378,7 @@ public:
                                          m_grow_on_next_insert(false)
     {
         if(bucket_count > max_bucket_count()) {
-            TSL_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
         }
         
         if(bucket_count > 0) {
@@ -570,7 +559,7 @@ public:
         {
             const auto nb_elements_insert = std::distance(first, last);
             const size_type nb_free_buckets = m_load_threshold - size();
-            tsl_assert(m_load_threshold >= size());
+            tsl_oh_assert(m_load_threshold >= size());
             
             if(nb_elements_insert > 0 && nb_free_buckets < size_type(nb_elements_insert)) {
                 reserve(size() + size_type(nb_elements_insert));
@@ -647,12 +636,12 @@ public:
     }
     
     iterator erase(const_iterator pos) {
-        tsl_assert(pos != cend());
+        tsl_oh_assert(pos != cend());
         
         const std::size_t index_erase = iterator_to_index(pos);
         
         auto it_bucket = find_key(pos.key(), hash_key(pos.key()));
-        tsl_assert(it_bucket != m_buckets.end());
+        tsl_oh_assert(it_bucket != m_buckets.end());
         
         erase_value_from_bucket(it_bucket);
         
@@ -668,13 +657,13 @@ public:
             return mutable_iterator(first);
         }
         
-        tsl_assert(std::distance(first, last) > 0);
+        tsl_oh_assert(std::distance(first, last) > 0);
         const std::size_t start_index = iterator_to_index(first);
         const std::size_t nb_values = std::size_t(std::distance(first, last));
         const std::size_t end_index = start_index + nb_values;
         
         // Delete all values
-#ifdef TSL_NO_CONTAINER_ERASE_CONST_ITERATOR     
+#ifdef TSL_OH_NO_CONTAINER_ERASE_CONST_ITERATOR     
         auto next_it = m_values.erase(mutable_iterator(first).m_iterator, mutable_iterator(last).m_iterator);   
 #else
         auto next_it = m_values.erase(first.m_iterator, last.m_iterator);
@@ -761,7 +750,7 @@ public:
             return it.value();
         }
         else {
-            TSL_THROW_OR_TERMINATE(std::out_of_range("Couldn't find the key."));
+            TSL_OH_THROW_OR_TERMINATE(std::out_of_range("Couldn't find the key."));
         }
     }
     
@@ -897,22 +886,22 @@ public:
     }
     
     iterator nth(size_type index) {
-        tsl_assert(index <= size());
+        tsl_oh_assert(index <= size());
         return iterator(m_values.begin() + index);
     }
     
     const_iterator nth(size_type index) const {
-        tsl_assert(index <= size());
+        tsl_oh_assert(index <= size());
         return const_iterator(m_values.cbegin() + index);
     }
     
     const_reference front() const {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_values.front();
     }
     
     const_reference back() const {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         return m_values.back();
     }
     
@@ -955,7 +944,7 @@ public:
     
 
     void pop_back() {
-        tsl_assert(!empty());
+        tsl_oh_assert(!empty());
         erase(std::prev(end()));
     }
     
@@ -998,8 +987,8 @@ public:
          */
         if(!compare_keys(key, KeySelect()(back()))) {
             auto it_bucket_last_elem = find_key(KeySelect()(back()), hash_key(KeySelect()(back())));
-            tsl_assert(it_bucket_last_elem != m_buckets.end());
-            tsl_assert(it_bucket_last_elem->index() == m_values.size() - 1);
+            tsl_oh_assert(it_bucket_last_elem != m_buckets.end());
+            tsl_oh_assert(it_bucket_last_elem->index() == m_values.size() - 1);
             
             using std::swap;
             swap(m_values[it_bucket_key->index()], m_values[it_bucket_last_elem->index()]);
@@ -1080,10 +1069,10 @@ private:
     }
     
     void rehash_impl(size_type bucket_count) {
-        tsl_assert(bucket_count >= size_type(std::ceil(float(size())/max_load_factor())));
+        tsl_oh_assert(bucket_count >= size_type(std::ceil(float(size())/max_load_factor())));
         
         if(bucket_count > max_bucket_count()) {
-            TSL_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
         }
         
         if(bucket_count > 0) {
@@ -1147,7 +1136,7 @@ private:
      * or if the other bucket has a distance_from_ideal_bucket == 0.
      */
     void backward_shift(std::size_t empty_ibucket) noexcept {
-        tsl_assert(m_buckets[empty_ibucket].empty());
+        tsl_oh_assert(m_buckets[empty_ibucket].empty());
         
         std::size_t previous_ibucket = empty_ibucket;
         for(std::size_t current_ibucket = next_bucket(previous_ibucket); 
@@ -1159,7 +1148,7 @@ private:
     }
     
     void erase_value_from_bucket(typename buckets_container_type::iterator it_bucket) {
-        tsl_assert(it_bucket != m_buckets.end() && !it_bucket->empty());
+        tsl_oh_assert(it_bucket != m_buckets.end() && !it_bucket->empty());
         
         m_values.erase(m_values.begin() + it_bucket->index());
         
@@ -1181,7 +1170,7 @@ private:
      * bucket corresponding to the value, shift the index by delta.
      */
     void shift_indexes_in_buckets(index_type from_ivalue, char delta) noexcept  {
-        tsl_assert(delta == 1 || delta == -1);
+        tsl_oh_assert(delta == 1 || delta == -1);
         
         for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
             // All the values in m_values have been shifted by delta. Find the bucket corresponding 
@@ -1232,7 +1221,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            TSL_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
         }
         
         
@@ -1274,7 +1263,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            TSL_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
         }
         
         
@@ -1286,7 +1275,7 @@ private:
         
         const index_type index_insert_position = index_type(std::distance(m_values.cbegin(), insert_position));
         
-#ifdef TSL_NO_CONTAINER_EMPLACE_CONST_ITERATOR
+#ifdef TSL_OH_NO_CONTAINER_EMPLACE_CONST_ITERATOR
         m_values.emplace(m_values.begin() + std::distance(m_values.cbegin(), insert_position), std::forward<Args>(value_type_args)...);
 #else        
         m_values.emplace(insert_position, std::forward<Args>(value_type_args)...);
@@ -1351,7 +1340,7 @@ private:
     }
     
     std::size_t next_bucket(std::size_t index) const noexcept {
-        tsl_assert(index < m_buckets.size());
+        tsl_oh_assert(index < m_buckets.size());
         
         index++;
         return (index < m_buckets.size())?index:0;
@@ -1363,7 +1352,7 @@ private:
     
     std::size_t iterator_to_index(const_iterator it) const noexcept {
         const auto dist = std::distance(cbegin(), it);
-        tsl_assert(dist >= 0);
+        tsl_oh_assert(dist >= 0);
         
         return std::size_t(dist);
     }
