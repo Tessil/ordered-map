@@ -62,14 +62,18 @@
 #    define tsl_oh_assert(expr) (static_cast<void>(0))
 #endif
 
-
 /**
- * If exceptions are enabled, throw the exception passed in parameter, otherwise std::terminate.
+ * If exceptions are enabled, throw the exception passed in parameter, otherwise call std::terminate.
  */
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))) && !defined(TSL_NO_EXCEPTIONS)
-#    define TSL_OH_THROW_OR_TERMINATE(ex) throw ex
+#    define TSL_OH_THROW_OR_TERMINATE(ex, msg) throw ex(msg)
 #else
-#    define TSL_OH_THROW_OR_TERMINATE(ex) std::terminate()
+#    ifdef NDEBUG
+#        define TSL_OH_THROW_OR_TERMINATE(ex, msg) std::terminate()
+#    else
+#        include <cstdio>
+#        define TSL_OH_THROW_OR_TERMINATE(ex, msg) do { std::fprintf(stderr, msg); std::terminate(); } while(0)
+#    endif
 #endif
 
 
@@ -378,7 +382,7 @@ public:
                                          m_grow_on_next_insert(false)
     {
         if(bucket_count > max_bucket_count()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
         }
         
         if(bucket_count > 0) {
@@ -750,7 +754,7 @@ public:
             return it.value();
         }
         else {
-            TSL_OH_THROW_OR_TERMINATE(std::out_of_range("Couldn't find the key."));
+            TSL_OH_THROW_OR_TERMINATE(std::out_of_range, "Couldn't find the key.");
         }
     }
     
@@ -1072,7 +1076,7 @@ private:
         tsl_oh_assert(bucket_count >= size_type(std::ceil(float(size())/max_load_factor())));
         
         if(bucket_count > max_bucket_count()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error("The map exceeds its maxmimum size."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
         }
         
         if(bucket_count > 0) {
@@ -1221,7 +1225,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "We reached the maximum size for the hash table.");
         }
         
         
@@ -1263,7 +1267,7 @@ private:
         }
         
         if(size() >= max_size()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error("We reached the maximum size for the hash table."));
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "We reached the maximum size for the hash table.");
         }
         
         
