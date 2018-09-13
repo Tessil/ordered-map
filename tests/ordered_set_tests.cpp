@@ -115,6 +115,17 @@ BOOST_AUTO_TEST_CASE(test_compare) {
     BOOST_ASSERT(map >= (tsl::ordered_set<std::string>{"D", "L", "A"}));
 }
 
+BOOST_AUTO_TEST_CASE(test_insert_pointer) {
+    // Test added mainly to be sure that the code compiles with MSVC
+    std::string value;
+    std::string* value_ptr = &value;
 
+    tsl::ordered_set<std::string*> set;
+    set.insert(value_ptr);
+    set.emplace(value_ptr);
+
+    BOOST_CHECK_EQUAL(set.size(), 1);
+    BOOST_CHECK_EQUAL(**set.begin(), value);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
