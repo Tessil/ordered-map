@@ -1161,7 +1161,7 @@ private:
          * shift the indexes by -1 in the buckets array for these values.
          */
         if(it_bucket->index() != m_values.size()) {
-            shift_indexes_in_buckets(it_bucket->index(), char(-1));
+            shift_indexes_in_buckets(it_bucket->index(), -1);
         }        
         
         // Mark the bucket as empty and do a backward shift of the values on the right
@@ -1172,8 +1172,10 @@ private:
     /**
      * Go through each value from [from_ivalue, m_values.size()) in m_values and for each
      * bucket corresponding to the value, shift the index by delta.
+     * 
+     * delta must be equal to 1 or -1.
      */
-    void shift_indexes_in_buckets(index_type from_ivalue, char delta) noexcept  {
+    void shift_indexes_in_buckets(index_type from_ivalue, int delta) noexcept  {
         tsl_oh_assert(delta == 1 || delta == -1);
         
         for(std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
@@ -1293,7 +1295,7 @@ private:
          * we need to shift the indexes in m_buckets.
          */
         if(index_insert_position != m_values.size() - 1) {
-            shift_indexes_in_buckets(index_insert_position + 1, char(1));
+            shift_indexes_in_buckets(index_insert_position + 1, 1);
         }
         
         return std::make_pair(iterator(m_values.begin() + index_insert_position), true);
