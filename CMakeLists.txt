@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(tsl_ordered_map)
-set(${PROJECT_NAME}_VERSION 0.7.0)
+project(tsl_ordered_map VERSION 0.7.0)
 
 add_library(tsl_ordered_map INTERFACE)
 # Use tsl::ordered_map as target, more consistent with other libraries conventions (Boost, Qt, ...)
