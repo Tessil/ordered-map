@@ -16,7 +16,9 @@ target_sources(tsl_ordered_map INTERFACE
                                  ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_set.h>)
 
 if(MSVC)
-    target_sources(tsl_ordered_map INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis")
+    target_sources(tsl_ordered_map INTERFACE
+                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis>
+                   $<INSTALL_INTERFACE:tsl_ordered_map.natvis>)
 endif()
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.7") 
@@ -34,6 +36,11 @@ include(GNUInstallDirs)
 ## Install include directory and potential natvis file
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+if(MSVC)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis 
+            DESTINATION ".")
+endif()
 
 
 
