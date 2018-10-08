@@ -43,7 +43,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl
 set(ORDERED_MAP_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE
     STRING "install path for xtlConfig.cmake")
 
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
                               "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
                               INSTALL_DESTINATION ${ORDERED_MAP_CMAKECONFIG_INSTALL_DIR})
 
