@@ -1,9 +1,6 @@
-# xtl cmake module
-# This module sets the following variables in your project::
-#
-#   tsl_ordered_map_FOUND - true if xtl found on the system
-#   tsl_ordered_map_INCLUDE_DIRS - the directory containing xtl headers
-#   tsl_ordered_map_LIBRARY - empty
+# This module sets the following variables:
+# * tsl_ordered_map_FOUND - true if tsl_ordered_map found on the system
+# * tsl_ordered_map_INCLUDE_DIRS - the directory containing tsl_ordered_map headers
 
 @PACKAGE_INIT@
 
