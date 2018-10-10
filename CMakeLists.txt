@@ -2,28 +2,28 @@ cmake_minimum_required(VERSION 3.1)
 
 project(tsl_ordered_map VERSION 0.7.0)
 
-add_library(tsl_ordered_map INTERFACE)
+add_library(ordered_map INTERFACE)
 # Use tsl::ordered_map as target, more consistent with other libraries conventions (Boost, Qt, ...)
-add_library(tsl::ordered_map ALIAS tsl_ordered_map)
+add_library(tsl::ordered_map ALIAS ordered_map)
 
-target_include_directories(tsl_ordered_map INTERFACE
+target_include_directories(ordered_map INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
                            
-target_sources(tsl_ordered_map INTERFACE 
+target_sources(ordered_map INTERFACE 
                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_hash.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_map.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_set.h>)
 
 if(MSVC)
-    target_sources(tsl_ordered_map INTERFACE
+    target_sources(ordered_map INTERFACE
                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis>
                    $<INSTALL_INTERFACE:tsl_ordered_map.natvis>)
 endif()
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.7") 
     # Only available since version 3.8
-    target_compile_features(tsl_ordered_map INTERFACE cxx_std_11)
+    target_compile_features(ordered_map INTERFACE cxx_std_11)
 endif()
 
 
@@ -55,10 +55,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
         
 
 ## Create and install tsl_ordered_mapTargets.cmake
-install(TARGETS tsl_ordered_map
+install(TARGETS ordered_map
         EXPORT ${PROJECT_NAME}Targets)
         
 install(EXPORT ${PROJECT_NAME}Targets
+        NAMESPACE tsl::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
         
