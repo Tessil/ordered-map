@@ -7,18 +7,18 @@ add_library(ordered_map INTERFACE)
 add_library(tsl::ordered_map ALIAS ordered_map)
 
 target_include_directories(ordered_map INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                           $<INSTALL_INTERFACE:include>)
-                           
-target_sources(ordered_map INTERFACE 
-               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_hash.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_map.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_set.h>)
+                           "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+                           "$<INSTALL_INTERFACE:include>")
+
+list(APPEND headers "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_hash.h"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_map.h"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/ordered_set.h")
+target_sources(ordered_map INTERFACE "$<BUILD_INTERFACE:${headers}>")
 
 if(MSVC)
     target_sources(ordered_map INTERFACE
-                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis>
-                   $<INSTALL_INTERFACE:tsl_ordered_map.natvis>)
+                   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis>"
+                   "$<INSTALL_INTERFACE:tsl_ordered_map.natvis>")
 endif()
 
 # Only compatible with CMake version >= 3.8
@@ -35,47 +35,47 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.2")
     include(GNUInstallDirs)
 
     ## Install include directory and potential natvis file
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/tsl
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
     if(MSVC)
-        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis 
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tsl_ordered_map.natvis"
                 DESTINATION ".")
     endif()
 
 
 
     ## Create and install tsl_ordered_mapConfig.cmake
-    configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-                                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-                                INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    configure_package_config_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tsl_ordered_mapConfig.cmake.in"
+                                  "${CMAKE_CURRENT_BINARY_DIR}/tsl_ordered_mapConfig.cmake"
+                                  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tsl_ordered_map")
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tsl_ordered_mapConfig.cmake"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tsl_ordered_map")
 
             
 
     ## Create and install tsl_ordered_mapTargets.cmake
     install(TARGETS ordered_map
-            EXPORT ${PROJECT_NAME}Targets)
+            EXPORT tsl_ordered_mapTargets)
             
-    install(EXPORT ${PROJECT_NAME}Targets
+    install(EXPORT tsl_ordered_mapTargets
             NAMESPACE tsl::
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tsl_ordered_map")
 
             
 
     ## Create and install tsl_ordered_mapConfigVersion.cmake
-    # ordered_map is header-only and does not depend on the architecture.
+    # tsl_ordered_map is header-only and does not depend on the architecture.
     # Remove CMAKE_SIZEOF_VOID_P from tsl_ordered_mapConfigVersion.cmake so that an
     # tsl_ordered_mapConfig.cmake generated for a 64 bit target can be used for 32 bit
     # targets and vice versa.
     set(TSL_ORDERED_MAP_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
     unset(CMAKE_SIZEOF_VOID_P)
-    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-                                    COMPATIBILITY SameMajorVersion)
+    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/tsl_ordered_mapConfigVersion.cmake"
+                                     COMPATIBILITY SameMajorVersion)
     set(CMAKE_SIZEOF_VOID_P ${TSL_ORDERED_MAP_CMAKE_SIZEOF_VOID_P})
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tsl_ordered_mapConfigVersion.cmake"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tsl_ordered_map")
 endif()
