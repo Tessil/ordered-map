@@ -375,8 +375,8 @@ public:
                  const Allocator& alloc,
                  float max_load_factor): Hash(hash),
                                          KeyEqual(equal), 
-                                         m_buckets(alloc), 
-                                         m_first_or_empty_bucket(static_empty_bucket_ptr()), 
+                                         m_buckets_data(alloc), 
+                                         m_buckets(static_empty_bucket_ptr()), 
                                          m_mask(0),
                                          m_values(alloc), 
                                          m_grow_on_next_insert(false)
@@ -388,8 +388,8 @@ public:
         if(bucket_count > 0) {
             bucket_count = round_up_to_power_of_two(bucket_count);
             
-            m_buckets.resize(bucket_count);
-            m_first_or_empty_bucket = m_buckets.data(),
+            m_buckets_data.resize(bucket_count);
+            m_buckets = m_buckets_data.data(),
             m_mask = bucket_count - 1; 
         }
         
@@ -398,8 +398,9 @@ public:
     
     ordered_hash(const ordered_hash& other): Hash(other),
                                              KeyEqual(other),
-                                             m_buckets(other.m_buckets),
-                                             m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():m_buckets.data()),
+                                             m_buckets_data(other.m_buckets_data),
+                                             m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
+                                                                              m_buckets_data.data()),
                                              m_mask(other.m_mask),
                                              m_values(other.m_values),
                                              m_grow_on_next_insert(other.m_grow_on_next_insert),
@@ -414,16 +415,17 @@ public:
                                                 std::is_nothrow_move_constructible<values_container_type>::value)
                                           : Hash(std::move(static_cast<Hash&>(other))),
                                             KeyEqual(std::move(static_cast<KeyEqual&>(other))),
-                                            m_buckets(std::move(other.m_buckets)),
-                                            m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():m_buckets.data()),
+                                            m_buckets_data(std::move(other.m_buckets_data)),
+                                            m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
+                                                                             m_buckets_data.data()),
                                             m_mask(other.m_mask),
                                             m_values(std::move(other.m_values)),
                                             m_grow_on_next_insert(other.m_grow_on_next_insert),
                                             m_max_load_factor(other.m_max_load_factor),
                                             m_load_threshold(other.m_load_threshold)
     {
-        other.m_buckets.clear();
-        other.m_first_or_empty_bucket = static_empty_bucket_ptr();
+        other.m_buckets_data.clear();
+        other.m_buckets = static_empty_bucket_ptr();
         other.m_mask = 0;
         other.m_values.clear();
         other.m_grow_on_next_insert = false;
@@ -435,9 +437,9 @@ public:
             Hash::operator=(other);
             KeyEqual::operator=(other);
             
-            m_buckets = other.m_buckets;
-            m_first_or_empty_bucket = m_buckets.empty()?static_empty_bucket_ptr():
-                                                        m_buckets.data();
+            m_buckets_data = other.m_buckets_data;
+            m_buckets = m_buckets_data.empty()?static_empty_bucket_ptr():
+                                               m_buckets_data.data();
                                                         
             m_mask = other.m_mask;
             m_values = other.m_values;
@@ -534,7 +536,7 @@ public:
      * Modifiers
      */
     void clear() noexcept {
-        for(auto& bucket: m_buckets) {
+        for(auto& bucket: m_buckets_data) {
             bucket.clear();
         }
         
@@ -645,7 +647,7 @@ public:
         const std::size_t index_erase = iterator_to_index(pos);
         
         auto it_bucket = find_key(pos.key(), hash_key(pos.key()));
-        tsl_oh_assert(it_bucket != m_buckets.end());
+        tsl_oh_assert(it_bucket != m_buckets_data.end());
         
         erase_value_from_bucket(it_bucket);
         
@@ -680,7 +682,7 @@ public:
          * Adapt the indexes for these values.
          */
         std::size_t ibucket = 0;
-        while(ibucket < m_buckets.size()) {
+        while(ibucket < m_buckets_data.size()) {
             if(m_buckets[ibucket].empty()) {
                 ibucket++;
             }
@@ -717,8 +719,8 @@ public:
         
         swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
+        swap(m_buckets_data, other.m_buckets_data);
         swap(m_buckets, other.m_buckets);
-        swap(m_first_or_empty_bucket, other.m_first_or_empty_bucket);
         swap(m_mask, other.m_mask);
         swap(m_values, other.m_values);
         swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
@@ -788,7 +790,7 @@ public:
     template<class K>
     iterator find(const K& key, std::size_t hash) {
         auto it_bucket = find_key(key, hash);
-        return (it_bucket != m_buckets.end())?iterator(m_values.begin() + it_bucket->index()):end();
+        return (it_bucket != m_buckets_data.end())?iterator(m_values.begin() + it_bucket->index()):end();
     }
     
     template<class K>
@@ -799,7 +801,7 @@ public:
     template<class K>
     const_iterator find(const K& key, std::size_t hash) const {
         auto it_bucket = find_key(key, hash);
-        return (it_bucket != m_buckets.cend())?const_iterator(m_values.begin() + it_bucket->index()):end();
+        return (it_bucket != m_buckets_data.cend())?const_iterator(m_values.begin() + it_bucket->index()):end();
     }
     
     
@@ -830,11 +832,11 @@ public:
      * Bucket interface 
      */
     size_type bucket_count() const {
-        return m_buckets.size(); 
+        return m_buckets_data.size(); 
     }
     
     size_type max_bucket_count() const {
-        return m_buckets.max_size();
+        return m_buckets_data.max_size();
     }    
     
     /*
@@ -980,7 +982,7 @@ public:
     template<class K>
     size_type unordered_erase(const K& key, std::size_t hash) {
         auto it_bucket_key = find_key(key, hash);
-        if(it_bucket_key == m_buckets.end()) {
+        if(it_bucket_key == m_buckets_data.end()) {
             return 0;
         }
         
@@ -991,7 +993,7 @@ public:
          */
         if(!compare_keys(key, KeySelect()(back()))) {
             auto it_bucket_last_elem = find_key(KeySelect()(back()), hash_key(KeySelect()(back())));
-            tsl_oh_assert(it_bucket_last_elem != m_buckets.end());
+            tsl_oh_assert(it_bucket_last_elem != m_buckets_data.end());
             tsl_oh_assert(it_bucket_last_elem->index() == m_values.size() - 1);
             
             using std::swap;
@@ -1043,11 +1045,11 @@ private:
     template<class K>
     typename buckets_container_type::iterator find_key(const K& key, std::size_t hash) {
         auto it = static_cast<const ordered_hash*>(this)->find_key(key, hash);
-        return m_buckets.begin() + std::distance(m_buckets.cbegin(), it);
+        return m_buckets_data.begin() + std::distance(m_buckets_data.cbegin(), it);
     }
     
     /**
-     * Return bucket which has the key 'key' or m_buckets.end() if none.
+     * Return bucket which has the key 'key' or m_buckets_data.end() if none.
      * 
      * From the bucket_for_hash, search for the value until we either find an empty bucket
      * or a bucket which has a value with a distance from its ideal bucket longer
@@ -1058,16 +1060,16 @@ private:
         for(std::size_t ibucket = bucket_for_hash(hash), dist_from_ideal_bucket = 0; ; 
             ibucket = next_bucket(ibucket), dist_from_ideal_bucket++) 
         {
-            if((m_first_or_empty_bucket + ibucket)->empty()) {
-                return m_buckets.end();
+            if(m_buckets[ibucket].empty()) {
+                return m_buckets_data.end();
             }
-            else if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
-                    compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
+            else if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+                    compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
-                return m_buckets.begin() + ibucket;
+                return m_buckets_data.begin() + ibucket;
             }
             else if(dist_from_ideal_bucket > distance_from_ideal_bucket(ibucket)) {
-                return m_buckets.end();
+                return m_buckets_data.end();
             }
         }
     }
@@ -1089,8 +1091,8 @@ private:
         
         
         buckets_container_type old_buckets(bucket_count);
-        m_buckets.swap(old_buckets);
-        m_first_or_empty_bucket = m_buckets.data();
+        m_buckets_data.swap(old_buckets);
+        m_buckets = m_buckets_data.data();
         // Everything should be noexcept from here.
         
         m_mask = (bucket_count > 0)?(bucket_count - 1):0;
@@ -1152,7 +1154,7 @@ private:
     }
     
     void erase_value_from_bucket(typename buckets_container_type::iterator it_bucket) {
-        tsl_oh_assert(it_bucket != m_buckets.end() && !it_bucket->empty());
+        tsl_oh_assert(it_bucket != m_buckets_data.end() && !it_bucket->empty());
         
         m_values.erase(m_values.begin() + it_bucket->index());
         
@@ -1166,7 +1168,7 @@ private:
         
         // Mark the bucket as empty and do a backward shift of the values on the right
         it_bucket->clear();
-        backward_shift(std::size_t(std::distance(m_buckets.begin(), it_bucket)));
+        backward_shift(std::size_t(std::distance(m_buckets_data.begin(), it_bucket)));
     }
     
     /**
@@ -1195,7 +1197,7 @@ private:
     template<class K>
     size_type erase_impl(const K& key, std::size_t hash) {
         auto it_bucket = find_key(key, hash);
-        if(it_bucket != m_buckets.end()) {
+        if(it_bucket != m_buckets_data.end()) {
             erase_value_from_bucket(it_bucket);
             
             return 1;
@@ -1215,11 +1217,11 @@ private:
         std::size_t ibucket = bucket_for_hash(hash); 
         std::size_t dist_from_ideal_bucket = 0;
         
-        while(!(m_first_or_empty_bucket + ibucket)->empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
-            if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
+        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
-                return std::make_pair(begin() + (m_first_or_empty_bucket + ibucket)->index(), false);
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
             }
             
             ibucket = next_bucket(ibucket);
@@ -1257,11 +1259,11 @@ private:
         std::size_t ibucket = bucket_for_hash(hash); 
         std::size_t dist_from_ideal_bucket = 0;
         
-        while(!(m_first_or_empty_bucket + ibucket)->empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
-            if((m_first_or_empty_bucket + ibucket)->truncated_hash() == bucket_entry::truncate_hash(hash) && 
-               compare_keys(key, KeySelect()(m_values[(m_first_or_empty_bucket + ibucket)->index()]))) 
+        while(!m_buckets[ibucket].empty() && dist_from_ideal_bucket <= distance_from_ideal_bucket(ibucket)) {
+            if(m_buckets[ibucket].truncated_hash() == bucket_entry::truncate_hash(hash) && 
+               compare_keys(key, KeySelect()(m_values[m_buckets[ibucket].index()]))) 
             {
-                return std::make_pair(begin() + (m_first_or_empty_bucket + ibucket)->index(), false);
+                return std::make_pair(begin() + m_buckets[ibucket].index(), false);
             }
             
             ibucket = next_bucket(ibucket);
@@ -1292,7 +1294,7 @@ private:
         
         /*
          * The insertion didn't happend at the end of the m_values container, 
-         * we need to shift the indexes in m_buckets.
+         * we need to shift the indexes in m_buckets_data.
          */
         if(index_insert_position != m_values.size() - 1) {
             shift_indexes_in_buckets(index_insert_position + 1, 1);
@@ -1346,10 +1348,10 @@ private:
     }
     
     std::size_t next_bucket(std::size_t index) const noexcept {
-        tsl_oh_assert(index < m_buckets.size());
+        tsl_oh_assert(index < m_buckets_data.size());
         
         index++;
-        return (index < m_buckets.size())?index:0;
+        return (index < m_buckets_data.size())?index:0;
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const noexcept {
@@ -1418,14 +1420,16 @@ private:
     }
     
 private:
-    buckets_container_type m_buckets;
+    buckets_container_type m_buckets_data;
     
     /**
-     * Points to m_buckets.data() if !m_buckets.empty() otherwise points to static_empty_bucket_ptr.
-     * This variable is useful to avoid the cost of checking if m_buckets is empty when trying 
+     * Points to m_buckets_data.data() if !m_buckets_data.empty() otherwise points to static_empty_bucket_ptr.
+     * This variable is useful to avoid the cost of checking if m_buckets_data is empty when trying 
      * to find an element.
+     * 
+     * TODO Remove m_buckets_data and only use a pointer+size instead of a pointer+vector to save some space in the ordered_hash object.
      */
-    bucket_entry* m_first_or_empty_bucket;
+    bucket_entry* m_buckets;
     
     size_type m_mask;
     
