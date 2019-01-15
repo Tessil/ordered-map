@@ -1092,7 +1092,8 @@ private:
         
         buckets_container_type old_buckets(bucket_count);
         m_buckets_data.swap(old_buckets);
-        m_buckets = m_buckets_data.data();
+        m_buckets = m_buckets_data.empty()?static_empty_bucket_ptr():
+                                           m_buckets_data.data();
         // Everything should be noexcept from here.
         
         m_mask = (bucket_count > 0)?(bucket_count - 1):0;
