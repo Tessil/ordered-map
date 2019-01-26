@@ -1,12 +1,14 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 
 project(tsl_ordered_map_tests)
 
 add_executable(tsl_ordered_map_tests "main.cpp" 
                                      "custom_allocator_tests.cpp" 
                                      "ordered_map_tests.cpp" 
-                                     "ordered_set_tests.cpp")                                     
-                                    
+                                     "ordered_set_tests.cpp")
+
+target_compile_features(tsl_ordered_map_tests PRIVATE cxx_std_11)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(tsl_ordered_map_tests PRIVATE -Werror -Wall -Wextra -Wold-style-cast -DTSL_DEBUG -UNDEBUG)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
