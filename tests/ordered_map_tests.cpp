@@ -922,6 +922,16 @@ BOOST_AUTO_TEST_CASE(test_move_constructor) {
     BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
 }
 
+BOOST_AUTO_TEST_CASE(test_move_constructor_empty) {
+    tsl::ordered_map<std::string, move_only_test> map(0);
+    tsl::ordered_map<std::string, move_only_test> map_move(std::move(map));
+    
+    BOOST_CHECK(map.empty());
+    BOOST_CHECK(map_move.empty());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map_move.find("") == map_move.end());
+}
 
 BOOST_AUTO_TEST_CASE(test_move_operator) {
     // insert x values in map, move map into map_move, check map and map_move, 
@@ -944,6 +954,18 @@ BOOST_AUTO_TEST_CASE(test_move_operator) {
     
     BOOST_CHECK_EQUAL(map_move.size(), nb_values*2);
     BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
+}
+
+BOOST_AUTO_TEST_CASE(test_move_operator_empty) {
+    tsl::ordered_map<std::string, move_only_test> map(0);
+    tsl::ordered_map<std::string, move_only_test> map_move;
+    map_move = (std::move(map));
+    
+    BOOST_CHECK(map.empty());
+    BOOST_CHECK(map_move.empty());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map_move.find("") == map_move.end());
 }
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
@@ -1107,6 +1129,23 @@ BOOST_AUTO_TEST_CASE(test_swap) {
     map2.insert({4, 40});
     
     BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}, {6, 60}}));
+    BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}, {4, 40}}));
+}
+
+BOOST_AUTO_TEST_CASE(test_swap_empty) {
+    tsl::ordered_map<std::int64_t, std::int64_t> map = {{1, 10}, {8, 80}, {3, 30}};
+    tsl::ordered_map<std::int64_t, std::int64_t> map2;
+    
+    using std::swap;
+    swap(map, map2);
+    
+    BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{}));
+    BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}}));
+    
+    map.insert({6, 60});
+    map2.insert({4, 40});
+    
+    BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{{6, 60}}));
     BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}, {4, 40}}));
 }
 
