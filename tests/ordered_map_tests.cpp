@@ -877,6 +877,12 @@ BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
     BOOST_CHECK_THROW((tsl::ordered_map<int, int>(std::numeric_limits<std::size_t>::max())), std::length_error);
 }
 
+BOOST_AUTO_TEST_CASE(test_range_construct) {
+    tsl::ordered_map<int, int> map = {{2, 1}, {1, 0}, {3, 2}};
+    
+    tsl::ordered_map<int, int> map2(map.begin(), map.end());
+    tsl::ordered_map<int, int> map3(map.cbegin(), map.cend());
+}
 
 
 /**
