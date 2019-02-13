@@ -285,8 +285,15 @@ public:
         ordered_iterator() noexcept {
         }
         
-        ordered_iterator(const ordered_iterator<false>& other) noexcept: m_iterator(other.m_iterator) {
+        // Copy constructor from iterator to const_iterator.
+        template<bool TIsConst = IsConst, typename std::enable_if<TIsConst>::type* = nullptr>
+        ordered_iterator(const ordered_iterator<!TIsConst>& other) noexcept: m_iterator(other.m_iterator) {
         }
+
+        ordered_iterator(const ordered_iterator& other) = default;
+        ordered_iterator(ordered_iterator&& other) = default;
+        ordered_iterator& operator=(const ordered_iterator& other) = default;
+        ordered_iterator& operator=(ordered_iterator&& other) = default;
 
         const typename ordered_hash::key_type& key() const {
             return KeySelect()(*m_iterator);
