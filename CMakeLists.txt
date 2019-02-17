@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 include(GNUInstallDirs)
 
 
-project(tsl-ordered-map VERSION 0.8.0)
+project(tsl-ordered-map VERSION 0.8.1)
 
 add_library(ordered_map INTERFACE)
 # Use tsl::ordered_map as target, more consistent with other libraries conventions (Boost, Qt, ...)
