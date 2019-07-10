@@ -25,7 +25,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - The library can be used with exceptions disabled (through `-fno-exceptions` option on Clang and GCC, without an `/EH` option on MSVC or simply by defining `TSL_NO_EXCEPTIONS`). `std::terminate` is used in replacement of the `throw` instruction when exceptions are disabled.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
-### Differences compare to `std::unordered_map`
+### Differences compared to `std::unordered_map`
 `tsl::ordered_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
 - The iterators are `RandomAccessIterator`.
 - Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
