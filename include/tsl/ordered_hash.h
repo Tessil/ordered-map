@@ -109,13 +109,13 @@ template<typename T, typename U>
 static T numeric_cast(U value, const char* error_message = "numeric_cast() failed.") {
     T ret = static_cast<T>(value);
     if(static_cast<U>(ret) != value) {
-        throw std::runtime_error(error_message);
+        TSL_OH_THROW_OR_TERMINATE(std::runtime_error, error_message);
     }
     
     const bool is_same_signedness = (std::is_unsigned<T>::value && std::is_unsigned<U>::value) ||
                                     (std::is_signed<T>::value && std::is_signed<U>::value);
     if(!is_same_signedness && (ret < T{}) != (value < U{})) {
-        throw std::runtime_error(error_message);
+        TSL_OH_THROW_OR_TERMINATE(std::runtime_error, error_message);
     }
     
     return ret;
@@ -1486,7 +1486,8 @@ private:
         // For now we only have one version of the serialization protocol. 
         // If it doesn't match there is a problem with the file.
         if(version != SERIALIZATION_PROTOCOL_VERSION) {
-            throw std::runtime_error("Can't deserialize the ordered_map/set. The protocol version header is invalid.");
+            TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Can't deserialize the ordered_map/set. "
+                                                          "The protocol version header is invalid.");
         }
         
         const slz_size_type nb_elements = deserialize_value<slz_size_type>(deserializer);
@@ -1523,8 +1524,9 @@ private:
             }
             
             if(load_factor() > this->max_load_factor()) {
-                throw std::runtime_error("Invalid max_load_factor. Check that the serializer and deserializer supports "
-                                         "floats correctly as they can be converted implicitely to ints.");
+                TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Invalid max_load_factor. Check that the serializer "
+                                                              "and deserializer supports floats correctly as they "
+                                                              "can be converted implicitely to ints.");
             }
         }
     }
