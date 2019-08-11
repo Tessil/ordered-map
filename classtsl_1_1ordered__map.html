@@ -45,6 +45,7 @@ $(function() {
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="#friends">Friends</a> &#124;
 <a href="classtsl_1_1ordered__map-members.html">List of all members</a>  </div>
   <div class="headertitle">
@@ -362,6 +363,15 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ac13787e3ff3e2c7ffbdd7f4f7b8ce081"><td class="memTemplParams" colspan="2">template&lt;class K , class KE  = KeyEqual, typename std::enable_if&lt; has_is_transparent&lt; KE &gt;::value &gt;::type *  = nullptr&gt; </td></tr>
 <tr class="memitem:ac13787e3ff3e2c7ffbdd7f4f7b8ce081"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classtsl_1_1ordered__map.html#abbe25131fe5f8312af7f92987e9e422b">size_type</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1ordered__map.html#ac13787e3ff3e2c7ffbdd7f4f7b8ce081">unordered_erase</a> (const K &amp;key, std::size_t precalculated_hash)</td></tr>
 <tr class="separator:ac13787e3ff3e2c7ffbdd7f4f7b8ce081"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1abbf43a96014093fbd80a2f55b87a30"><td class="memTemplParams" colspan="2">template&lt;class Serializer &gt; </td></tr>
+<tr class="memitem:a1abbf43a96014093fbd80a2f55b87a30"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1ordered__map.html#a1abbf43a96014093fbd80a2f55b87a30">serialize</a> (Serializer &amp;serializer) const</td></tr>
+<tr class="separator:a1abbf43a96014093fbd80a2f55b87a30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:a29bb8bff9283ad24501b9b3fbdeeb478"><td class="memTemplParams" colspan="2">template&lt;class Deserializer &gt; </td></tr>
+<tr class="memitem:a29bb8bff9283ad24501b9b3fbdeeb478"><td class="memTemplItemLeft" align="right" valign="top">static <a class="el" href="classtsl_1_1ordered__map.html">ordered_map</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classtsl_1_1ordered__map.html#a29bb8bff9283ad24501b9b3fbdeeb478">deserialize</a> (Deserializer &amp;deserializer, bool hash_compatible=false)</td></tr>
+<tr class="separator:a29bb8bff9283ad24501b9b3fbdeeb478"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
 Friends</h2></td></tr>
@@ -1856,6 +1866,53 @@ template&lt;class U  = values_container_type, typename std::enable_if&lt; tsl::d
 </table>
 </div><div class="memdoc">
 <p>Only available if ValueTypeContainer is a std::vector. Same as calling '<a class="el" href="classtsl_1_1ordered__map.html#abb69bca0a80def48ae806078d77175cb">values_container()</a>.<a class="el" href="classtsl_1_1ordered__map.html#aad8598e2f2dfeed429cfe80a1884ba20">data()</a>'. </p>
+
+</div>
+</div>
+<a id="a29bb8bff9283ad24501b9b3fbdeeb478"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a29bb8bff9283ad24501b9b3fbdeeb478">&#9670;&nbsp;</a></span>deserialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key , class T , class Hash  = std::hash&lt;Key&gt;, class KeyEqual  = std::equal_to&lt;Key&gt;, class Allocator  = std::allocator&lt;std::pair&lt;Key, T&gt;&gt;, class ValueTypeContainer  = std::deque&lt;std::pair&lt;Key, T&gt;, Allocator&gt;, class IndexType  = std::uint_least32_t&gt; </div>
+<div class="memtemplate">
+template&lt;class Deserializer &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="classtsl_1_1ordered__map.html">ordered_map</a> <a class="el" href="classtsl_1_1ordered__map.html">tsl::ordered_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, ValueTypeContainer, IndexType &gt;::deserialize </td>
+          <td>(</td>
+          <td class="paramtype">Deserializer &amp;&#160;</td>
+          <td class="paramname"><em>deserializer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>hash_compatible</em> = <code>false</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Deserialize a previouly serialized map through the <code>deserializer</code> parameter.</p>
+<p>The <code>deserializer</code> parameter must be a function object that supports the following calls:</p><ul>
+<li><code>template&lt;typename U&gt; U operator()();</code> where the types <code>std::uint64_t</code>, <code>float</code> and <code>std::pair&lt;Key, T&gt;</code> must be supported for U.</li>
+</ul>
+<p>If the deserialized hash map type is hash compatible with the serialized map, the deserialization process can be sped up by setting <code>hash_compatible</code> to true. To be hash compatible, the Hash and KeyEqual must behave the same way than the ones used on the serialized map. The <code>std::size_t</code> must also be of the same size as the one on the platform used to serialize the map, the same apply for <code>IndexType</code>. If these criteria are not met, the behaviour is undefined with <code>hash_compatible</code> sets to true.</p>
+<p>The behaviour is undefined if the type <code>Key</code> and <code>T</code> of the <code><a class="el" href="classtsl_1_1ordered__map.html">ordered_map</a></code> are not the same as the types used during serialization.</p>
+<p>The implementation leaves binary compatibilty (endianness, IEEE 754 for floats, size of int, ...) of the types it deserializes in the hands of the <code>Deserializer</code> function object if compatibilty is required. </p>
 
 </div>
 </div>
@@ -4081,6 +4138,41 @@ template&lt;class Key , class T , class Hash  = std::hash&lt;Key&gt;, class KeyE
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1abbf43a96014093fbd80a2f55b87a30"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1abbf43a96014093fbd80a2f55b87a30">&#9670;&nbsp;</a></span>serialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key , class T , class Hash  = std::hash&lt;Key&gt;, class KeyEqual  = std::equal_to&lt;Key&gt;, class Allocator  = std::allocator&lt;std::pair&lt;Key, T&gt;&gt;, class ValueTypeContainer  = std::deque&lt;std::pair&lt;Key, T&gt;, Allocator&gt;, class IndexType  = std::uint_least32_t&gt; </div>
+<div class="memtemplate">
+template&lt;class Serializer &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classtsl_1_1ordered__map.html">tsl::ordered_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, ValueTypeContainer, IndexType &gt;::serialize </td>
+          <td>(</td>
+          <td class="paramtype">Serializer &amp;&#160;</td>
+          <td class="paramname"><em>serializer</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Serialize the map through the <code>serializer</code> parameter.</p>
+<p>The <code>serializer</code> parameter must be a function object that supports the following call:</p><ul>
+<li><code>template&lt;typename U&gt; void operator()(const U&amp; value);</code> where the types <code>std::uint64_t</code>, <code>float</code> and <code>std::pair&lt;Key, T&gt;</code> must be supported for U.</li>
+</ul>
+<p>The implementation leaves binary compatibilty (endianness, IEEE 754 for floats, ...) of the types it serializes in the hands of the <code>Serializer</code> function object if compatibilty is required. </p>
 
 </div>
 </div>

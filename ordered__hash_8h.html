@@ -44,7 +44,8 @@ $(function() {
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#namespaces">Namespaces</a> &#124;
-<a href="#define-members">Macros</a>  </div>
+<a href="#define-members">Macros</a> &#124;
+<a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle">
 <div class="title">ordered_hash.h File Reference</div>  </div>
 </div><!--header-->
@@ -65,6 +66,7 @@ $(function() {
 <code>#include &lt;type_traits&gt;</code><br />
 <code>#include &lt;utility&gt;</code><br />
 <code>#include &lt;vector&gt;</code><br />
+<code>#include &lt;cstdio&gt;</code><br />
 </div>
 <p><a href="ordered__hash_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -86,20 +88,25 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a5a1bbd28ca09aa70ee0b574b8c8c9fe7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ordered__hash_8h.html#a5a1bbd28ca09aa70ee0b574b8c8c9fe7">tsl_assert</a>(expr)&#160;&#160;&#160;(static_cast&lt;void&gt;(0))</td></tr>
-<tr class="separator:a5a1bbd28ca09aa70ee0b574b8c8c9fe7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a60d77b52950d0c2c49fd8886d866ed42"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ordered__hash_8h.html#a60d77b52950d0c2c49fd8886d866ed42">TSL_THROW_OR_TERMINATE</a>(ex)&#160;&#160;&#160;std::terminate()</td></tr>
-<tr class="separator:a60d77b52950d0c2c49fd8886d866ed42"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7eae6449670924a0e5257cf7a884175b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ordered__hash_8h.html#a7eae6449670924a0e5257cf7a884175b">tsl_oh_assert</a>(expr)&#160;&#160;&#160;(static_cast&lt;void&gt;(0))</td></tr>
+<tr class="separator:a7eae6449670924a0e5257cf7a884175b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cb6dbf28dfb6132716a243392fd1e9a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ordered__hash_8h.html#a9cb6dbf28dfb6132716a243392fd1e9a">TSL_OH_THROW_OR_TERMINATE</a>(ex,  msg)&#160;&#160;&#160;do { std::fprintf(stderr, msg); std::terminate(); } while(0)</td></tr>
+<tr class="separator:a9cb6dbf28dfb6132716a243392fd1e9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:a9b402dfcf4bd2b98758a21713fdca5c0"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacetsl_1_1detail__ordered__hash.html#a9b402dfcf4bd2b98758a21713fdca5c0">tsl::detail_ordered_hash::slz_size_type</a> = std::uint64_t</td></tr>
+<tr class="separator:a9b402dfcf4bd2b98758a21713fdca5c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="a5a1bbd28ca09aa70ee0b574b8c8c9fe7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5a1bbd28ca09aa70ee0b574b8c8c9fe7">&#9670;&nbsp;</a></span>tsl_assert</h2>
+<a id="a7eae6449670924a0e5257cf7a884175b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7eae6449670924a0e5257cf7a884175b">&#9670;&nbsp;</a></span>tsl_oh_assert</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define tsl_assert</td>
+          <td class="memname">#define tsl_oh_assert</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">expr</td><td>)</td>
@@ -111,26 +118,36 @@ Macros</h2></td></tr>
 <p>Copyright (c) 2017 Tessil</p>
 <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
 <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
-<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. Macros for compatibility with GCC 4.8 Only activate tsl_assert if TSL_DEBUG is defined. This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot (people usually compile with "-O3" and not "-O3 -DNDEBUG"). </p>
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. Macros for compatibility with GCC 4.8 Only activate tsl_oh_assert if TSL_DEBUG is defined. This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_oh_assert is used a lot (people usually compile with "-O3" and not "-O3 -DNDEBUG"). </p>
 
 </div>
 </div>
-<a id="a60d77b52950d0c2c49fd8886d866ed42"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a60d77b52950d0c2c49fd8886d866ed42">&#9670;&nbsp;</a></span>TSL_THROW_OR_TERMINATE</h2>
+<a id="a9cb6dbf28dfb6132716a243392fd1e9a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cb6dbf28dfb6132716a243392fd1e9a">&#9670;&nbsp;</a></span>TSL_OH_THROW_OR_TERMINATE</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define TSL_THROW_OR_TERMINATE</td>
+          <td class="memname">#define TSL_OH_THROW_OR_TERMINATE</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname">ex</td><td>)</td>
-          <td>&#160;&#160;&#160;std::terminate()</td>
+          <td class="paramname">ex, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">msg&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;do { std::fprintf(stderr, msg); std::terminate(); } while(0)</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>If exceptions are enabled, throw the exception passed in parameter, otherwise std::terminate. </p>
+<p>If exceptions are enabled, throw the exception passed in parameter, otherwise call std::terminate. </p>
 
 </div>
 </div>
