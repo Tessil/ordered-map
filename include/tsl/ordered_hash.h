@@ -1513,7 +1513,7 @@ private:
             m_buckets = m_buckets_data.data(),
             m_mask = m_buckets_data.capacity() - 1; 
             
-            reserve_space_for_values(nb_elements);
+            reserve_space_for_values(numeric_cast<size_type>(nb_elements, "Deserialized nb_elements is too big."));
             for(slz_size_type el = 0; el < nb_elements; el++) {
                 m_values.push_back(deserialize_value<value_type>(deserializer));
             }
