@@ -105,6 +105,41 @@ struct is_vector<T, typename std::enable_if<
                     >::type>: std::true_type {
 };
 
+template<typename T, typename U>
+static T numeric_cast(U value, const char* error_message = "numeric_cast() failed.") {
+    T ret = static_cast<T>(value);
+    if(static_cast<U>(ret) != value) {
+        TSL_OH_THROW_OR_TERMINATE(std::runtime_error, error_message);
+    }
+    
+    const bool is_same_signedness = (std::is_unsigned<T>::value && std::is_unsigned<U>::value) ||
+                                    (std::is_signed<T>::value && std::is_signed<U>::value);
+    if(!is_same_signedness && (ret < T{}) != (value < U{})) {
+        TSL_OH_THROW_OR_TERMINATE(std::runtime_error, error_message);
+    }
+    
+    return ret;
+}
+
+
+/**
+ * Fixed size type used to represent size_type values on serialization. Need to be big enough
+ * to represent a std::size_t on 32 and 64 bits platforms, and must be the same size on both platforms.
+ */
+using slz_size_type = std::uint64_t;
+static_assert(std::numeric_limits<slz_size_type>::max() >= std::numeric_limits<std::size_t>::max(),
+              "slz_size_type must be >= std::size_t");
+
+template<class T, class Deserializer>
+static T deserialize_value(Deserializer& deserializer) {
+    // MSVC < 2017 is not conformant, circumvent the problem by removing the template keyword
+#if defined (_MSC_VER) && _MSC_VER < 1910
+    return deserializer.Deserializer::operator()<T>();
+#else
+    return deserializer.Deserializer::template operator()<T>();
+#endif
+}
+
 
 /**
  * Each bucket entry stores an index which is the index in m_values corresponding to the bucket's value 
@@ -165,6 +200,27 @@ public:
     
     void set_hash(std::size_t hash) noexcept {
         m_hash = truncate_hash(hash);
+    }
+    
+    template<class Serializer>
+    void serialize(Serializer& serializer) const {
+        const slz_size_type index = m_index;
+        serializer(index);
+        
+        const slz_size_type hash = m_hash;
+        serializer(hash);
+    }
+    
+    template<class Deserializer>
+    static bucket_entry deserialize(Deserializer& deserializer) {
+        const slz_size_type index = deserialize_value<slz_size_type>(deserializer);
+        const slz_size_type hash = deserialize_value<slz_size_type>(deserializer);
+        
+        bucket_entry bentry;
+        bentry.m_index = numeric_cast<index_type>(index, "Deserialized index is too big.");
+        bentry.m_hash = numeric_cast<truncated_hash_type>(hash, "Deserialized hash is too big.");
+        
+        return bentry;
     }
     
     
@@ -1013,6 +1069,16 @@ public:
         return 1;
     }
     
+    template<class Serializer>
+    void serialize(Serializer& serializer) const {
+        serialize_impl(serializer);
+    }
+    
+    template<class Deserializer>
+    void deserialize(Deserializer& deserializer, bool hash_compatible) {
+        deserialize_impl(deserializer, hash_compatible);
+    }
+    
     friend bool operator==(const ordered_hash& lhs, const ordered_hash& rhs) {
         return lhs.m_values == rhs.m_values;
     }
@@ -1388,6 +1454,83 @@ private:
         }
     }
     
+    template<class Serializer>
+    void serialize_impl(Serializer& serializer) const {
+        const slz_size_type version = SERIALIZATION_PROTOCOL_VERSION;
+        serializer(version);
+        
+        const slz_size_type nb_elements = m_values.size();
+        serializer(nb_elements);
+        
+        const slz_size_type bucket_count = m_buckets_data.size();
+        serializer(bucket_count);
+        
+        const float max_load_factor = m_max_load_factor;
+        serializer(max_load_factor);
+        
+        
+        for(const value_type& value: m_values) {
+            serializer(value);
+        }
+        
+        for(const bucket_entry& bucket: m_buckets_data) {
+            bucket.serialize(serializer);
+        }
+    }
+    
+    template<class Deserializer>
+    void deserialize_impl(Deserializer& deserializer, bool hash_compatible) {
+        tsl_oh_assert(m_buckets_data.empty()); // Current hash table must be empty
+        
+        const slz_size_type version = deserialize_value<slz_size_type>(deserializer);
+        // For now we only have one version of the serialization protocol. 
+        // If it doesn't match there is a problem with the file.
+        if(version != SERIALIZATION_PROTOCOL_VERSION) {
+            TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Can't deserialize the ordered_map/set. "
+                                                          "The protocol version header is invalid.");
+        }
+        
+        const slz_size_type nb_elements = deserialize_value<slz_size_type>(deserializer);
+        const slz_size_type bucket_count_ds = deserialize_value<slz_size_type>(deserializer);
+        const float max_load_factor = deserialize_value<float>(deserializer);
+        
+        
+        this->max_load_factor(max_load_factor);
+        
+        if(bucket_count_ds == 0) {
+            tsl_oh_assert(nb_elements == 0);
+            return;
+        }
+        
+        
+        if(!hash_compatible) {
+            reserve(numeric_cast<size_type>(nb_elements, "Deserialized nb_elements is too big."));
+            for(slz_size_type el = 0; el < nb_elements; el++) {
+                insert(deserialize_value<value_type>(deserializer));
+            }
+        }
+        else {
+            m_buckets_data.reserve(numeric_cast<size_type>(bucket_count_ds, "Deserialized bucket_count is too big."));
+            m_buckets = m_buckets_data.data(),
+            m_mask = m_buckets_data.capacity() - 1; 
+            
+            reserve_space_for_values(numeric_cast<size_type>(nb_elements, "Deserialized nb_elements is too big."));
+            for(slz_size_type el = 0; el < nb_elements; el++) {
+                m_values.push_back(deserialize_value<value_type>(deserializer));
+            }
+            
+            for(slz_size_type b = 0; b < bucket_count_ds; b++) {
+                m_buckets_data.push_back(bucket_entry::deserialize(deserializer));
+            }
+            
+            if(load_factor() > this->max_load_factor()) {
+                TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Invalid max_load_factor. Check that the serializer "
+                                                              "and deserializer supports floats correctly as they "
+                                                              "can be converted implicitely to ints.");
+            }
+        }
+    }
+    
     static std::size_t round_up_to_power_of_two(std::size_t value) {
         if(is_power_of_two(value)) {
             return value;
@@ -1418,6 +1561,10 @@ private:
     static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
     static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
     
+    /**
+     * Protocol version currenlty used for serialization.
+     */
+    static const slz_size_type SERIALIZATION_PROTOCOL_VERSION = 1;
     
     /**
      * Return an always valid pointer to an static empty bucket_entry with last_bucket() == true.
