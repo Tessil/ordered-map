@@ -649,10 +649,11 @@ public:
      *  - `template<typename U> U operator()();` where the types `std::uint64_t`, `float` and `Key` must be supported for U.
      * 
      * If the deserialized hash set type is hash compatible with the serialized set, the deserialization process can be
-     * sped up by setting `hash_compatible` to true. To be hash compatible, the Hash, KeyEqual and GrowthPolicy must behave the 
-     * same way than the ones used on the serialized set. The `std::size_t` must also be of the same size as the one on the platform used
-     * to serialize the set. If these criteria are not met, the behaviour is undefined with `hash_compatible` sets to true.
-     * 
+     * sped up by setting `hash_compatible` to true. To be hash compatible, the Hash and KeyEqual must behave the same way 
+     * than the ones used on the serialized map. The `std::size_t` must also be of the same size as the one on the platform used
+     * to serialize the map, the same apply for `IndexType`. If these criteria are not met, the behaviour is undefined with 
+     * `hash_compatible` sets to true.
+     *
      * The behaviour is undefined if the type `Key` of the `ordered_set` is not the same as the
      * type used during serialization.
      * 
