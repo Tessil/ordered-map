@@ -1156,6 +1156,89 @@ BOOST_AUTO_TEST_CASE(test_swap_empty) {
 }
 
 /**
+ * serialize and deserialize
+ */
+BOOST_AUTO_TEST_CASE(test_serialize_desearialize_empty) {
+    // serialize empty map; deserialize in new map; check equal.
+    // for deserialization, test it with and without hash compatibility.
+    const tsl::ordered_map<std::string, move_only_test> empty_map(0);
+    
+    
+    serializer serial;
+    empty_map.serialize(serial);
+
+    deserializer dserial(serial.str());
+    auto empty_map_deserialized = decltype(empty_map)::deserialize(dserial, true);
+    BOOST_CHECK(empty_map_deserialized == empty_map);
+
+    deserializer dserial2(serial.str());
+    empty_map_deserialized = decltype(empty_map)::deserialize(dserial2, false);
+    BOOST_CHECK(empty_map_deserialized == empty_map);
+}
+
+BOOST_AUTO_TEST_CASE(test_serialize_desearialize) {
+    // insert x values; delete some values; serialize map; deserialize in new map; check equal.
+    // for deserialization, test it with and without hash compatibility.
+    const std::size_t nb_values = 1000;
+    
+    
+    tsl::ordered_map<std::string, move_only_test> map;
+    for(std::size_t i = 0; i < nb_values + 40; i++) {
+        map.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    for(std::size_t i = nb_values; i < nb_values + 40; i++) {
+        map.erase(utils::get_key<std::string>(i));
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+
+    
+    
+    serializer serial;
+    map.serialize(serial);
+
+    deserializer dserial(serial.str());
+    auto map_deserialized = decltype(map)::deserialize(dserial, true);
+    BOOST_CHECK(map == map_deserialized);
+
+    deserializer dserial2(serial.str());
+    map_deserialized = decltype(map)::deserialize(dserial2, false);
+    BOOST_CHECK(map_deserialized == map);
+}
+
+BOOST_AUTO_TEST_CASE(test_serialize_desearialize_with_different_hash) {
+    // insert x values; serialize map; deserialize in new map which has a different hash; check equal
+    struct hash_str_diff {
+        std::size_t operator()(const std::string& str) const {
+            return std::hash<std::string>()(str) + 123;
+        }
+    };
+    
+    
+    const std::size_t nb_values = 1000;
+    
+    
+    tsl::ordered_map<std::string, move_only_test> map;
+    for(std::size_t i = 0; i < nb_values; i++) {
+        map.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+
+    
+    
+    serializer serial;
+    map.serialize(serial);
+
+    deserializer dserial(serial.str());
+    auto map_deserialized = tsl::ordered_map<std::string, move_only_test, hash_str_diff>::deserialize(dserial, false);
+    
+    BOOST_CHECK_EQUAL(map_deserialized.size(), map.size());
+    for(const auto& val: map) {
+        BOOST_CHECK(map_deserialized.find(val.first) != map_deserialized.end());
+    }
+}
+
+/**
  * front(), back()
  */
 BOOST_AUTO_TEST_CASE(test_front_back) {
