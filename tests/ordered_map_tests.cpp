@@ -874,7 +874,7 @@ BOOST_AUTO_TEST_CASE(test_max_size) {
  * constructor
  */
 BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
-    BOOST_CHECK_THROW((tsl::ordered_map<int, int>(std::numeric_limits<std::size_t>::max())), std::length_error);
+    TSL_OH_CHECK_THROW((tsl::ordered_map<int, int>(std::numeric_limits<std::size_t>::max())), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_range_construct) {
@@ -1074,7 +1074,7 @@ BOOST_AUTO_TEST_CASE(test_at) {
     
     BOOST_CHECK_EQUAL(map.at(0), 10);
     BOOST_CHECK_EQUAL(map.at(-2), 20);
-    BOOST_CHECK_THROW(map.at(1), std::out_of_range);
+    TSL_OH_CHECK_THROW(map.at(1), std::out_of_range);
 }
 
 
@@ -1379,7 +1379,7 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     
     BOOST_CHECK_EQUAL(map.at(addr1), 4);
     BOOST_CHECK_EQUAL(map.at(addr2), 5);
-    BOOST_CHECK_THROW(map.at(addr_unknown), std::out_of_range);
+    TSL_OH_CHECK_THROW(map.at(addr_unknown), std::out_of_range);
     
     
     
@@ -1430,8 +1430,8 @@ BOOST_AUTO_TEST_CASE(test_empty_map) {
     BOOST_CHECK_EQUAL(map.count(""), 0);
     BOOST_CHECK_EQUAL(map.count("test"), 0);
     
-    BOOST_CHECK_THROW(map.at(""), std::out_of_range);
-    BOOST_CHECK_THROW(map.at("test"), std::out_of_range);
+    TSL_OH_CHECK_THROW(map.at(""), std::out_of_range);
+    TSL_OH_CHECK_THROW(map.at("test"), std::out_of_range);
     
     auto range = map.equal_range("test");
     BOOST_CHECK(range.first == range.second);
@@ -1468,7 +1468,7 @@ BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
     BOOST_CHECK_EQUAL(map_const.at(3, map_const.hash_function()(3)), -3);
     
     BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
-    BOOST_CHECK_THROW(map.at(3, map.hash_function()(2)), std::out_of_range);
+    TSL_OH_CHECK_THROW(map.at(3, map.hash_function()(2)), std::out_of_range);
     
     /**
      * count

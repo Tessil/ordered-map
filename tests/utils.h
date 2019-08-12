@@ -24,7 +24,6 @@
 #ifndef TSL_UTILS_H
 #define TSL_UTILS_H
 
-#include <boost/numeric/conversion/cast.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -33,6 +32,13 @@
 #include <string>
 #include <utility>
 
+#include "tsl/ordered_hash.h"
+
+#ifdef TSL_OH_NO_EXCEPTIONS
+#define TSL_OH_CHECK_THROW(S, E)
+#else
+#define TSL_OH_CHECK_THROW(S, E) BOOST_CHECK_THROW(S, E)
+#endif
 
 template<typename T>
 class identity_hash {
@@ -160,7 +166,7 @@ public:
 
 template<>
 inline std::int64_t utils::get_key<std::int64_t>(std::size_t counter) {
-    return boost::numeric_cast<std::int64_t>(counter);
+    return tsl::detail_ordered_hash::numeric_cast<std::int64_t>(counter);
 }
 
 template<>
@@ -170,7 +176,7 @@ inline std::string utils::get_key<std::string>(std::size_t counter) {
 
 template<>
 inline move_only_test utils::get_key<move_only_test>(std::size_t counter) {
-    return move_only_test(boost::numeric_cast<std::int64_t>(counter));
+    return move_only_test(tsl::detail_ordered_hash::numeric_cast<std::int64_t>(counter));
 }
 
 
@@ -178,7 +184,7 @@ inline move_only_test utils::get_key<move_only_test>(std::size_t counter) {
 
 template<>
 inline std::int64_t utils::get_value<std::int64_t>(std::size_t counter) {
-    return boost::numeric_cast<std::int64_t>(counter*2);
+    return tsl::detail_ordered_hash::numeric_cast<std::int64_t>(counter*2);
 }
 
 template<>
@@ -188,7 +194,7 @@ inline std::string utils::get_value<std::string>(std::size_t counter) {
 
 template<>
 inline move_only_test utils::get_value<move_only_test>(std::size_t counter) {
-    return move_only_test(boost::numeric_cast<std::int64_t>(counter*2));
+    return move_only_test(tsl::detail_ordered_hash::numeric_cast<std::int64_t>(counter*2));
 }
 
 
@@ -242,7 +248,7 @@ private:
     }
     
     void serialize_impl(const std::string& val) {
-        serialize_impl(boost::numeric_cast<std::uint64_t>(val.size()));
+        serialize_impl(tsl::detail_ordered_hash::numeric_cast<std::uint64_t>(val.size()));
         m_ostream.write(val.data(), val.size());
     }
 
@@ -282,7 +288,7 @@ private:
     template<class T, 
              typename std::enable_if<std::is_same<std::string, T>::value>::type* = nullptr>
     T deserialize_impl() {
-        const std::size_t str_size = boost::numeric_cast<std::size_t>(deserialize_impl<std::uint64_t>());
+        const std::size_t str_size = tsl::detail_ordered_hash::numeric_cast<std::size_t>(deserialize_impl<std::uint64_t>());
         
         // TODO std::string::data() return a const pointer pre-C++17. Avoid the inefficient double allocation.
         std::vector<char> chars(str_size);
