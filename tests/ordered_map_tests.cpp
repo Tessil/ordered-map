@@ -1064,6 +1064,29 @@ BOOST_AUTO_TEST_CASE(test_copy_constructor_and_operator) {
     BOOST_CHECK(map_copy == map_copy3);
 }
 
+BOOST_AUTO_TEST_CASE(test_copy_constructor_empty) {
+    tsl::ordered_map<std::string, int> map(0);
+    tsl::ordered_map<std::string, int> map_copy(map);
+    
+    BOOST_CHECK(map.empty());
+    BOOST_CHECK(map_copy.empty());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map_copy.find("") == map_copy.end());
+}
+
+BOOST_AUTO_TEST_CASE(test_copy_operator_empty) {
+    tsl::ordered_map<std::string, int> map(0);
+    tsl::ordered_map<std::string, int> map_copy(16);
+    map_copy = map;
+    
+    BOOST_CHECK(map.empty());
+    BOOST_CHECK(map_copy.empty());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map_copy.find("") == map_copy.end());
+}
+
 
 /**
  * at
