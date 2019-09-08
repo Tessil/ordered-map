@@ -4,7 +4,7 @@
 
 The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's [OrderedDict](https://docs.python.org/3/library/collections.html#collections.OrderedDict). When iterating over the map, the values will be returned in the same order as they were inserted.
 
-The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs.
+The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs. This provides fast iteration but with the drawback of an O(n) erase operation. An O(1) `pop_back()` and an O(1) `unordered_erase()` functions are available.
 
 To resolve collisions on hashes, the library uses linear robin hood probing with backward shift deletion.
 
