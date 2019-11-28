@@ -919,7 +919,14 @@ public:
     }
     
     void max_load_factor(float ml) {
-        m_max_load_factor = std::max(0.1f, std::min(ml, 0.95f));
+        if(ml < MAX_LOAD_FACTOR__MINIMUM) {
+            ml = MAX_LOAD_FACTOR__MINIMUM;
+        }
+        else if(ml > MAX_LOAD_FACTOR__MAXIMUM) {
+            ml = MAX_LOAD_FACTOR__MAXIMUM;
+        }
+
+        m_max_load_factor = ml;
         m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
     }
     
@@ -1494,6 +1501,12 @@ private:
         const slz_size_type nb_elements = deserialize_value<slz_size_type>(deserializer);
         const slz_size_type bucket_count_ds = deserialize_value<slz_size_type>(deserializer);
         const float max_load_factor = deserialize_value<float>(deserializer);
+
+        if(max_load_factor < MAX_LOAD_FACTOR__MINIMUM || max_load_factor > MAX_LOAD_FACTOR__MAXIMUM) {
+            TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Invalid max_load_factor. Check that the serializer "
+                                                          "and deserializer supports floats correctly as they "
+                                                          "can be converted implicitly to ints.");
+        }
         
         
         this->max_load_factor(max_load_factor);
@@ -1522,12 +1535,6 @@ private:
             
             for(slz_size_type b = 0; b < bucket_count_ds; b++) {
                 m_buckets_data.push_back(bucket_entry::deserialize(deserializer));
-            }
-            
-            if(load_factor() > this->max_load_factor()) {
-                TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Invalid max_load_factor. Check that the serializer "
-                                                              "and deserializer supports floats correctly as they "
-                                                              "can be converted implicitely to ints.");
             }
         }
     }
@@ -1559,6 +1566,9 @@ public:
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.75f;
 
 private:    
+    static constexpr float MAX_LOAD_FACTOR__MINIMUM = 0.1f;
+    static constexpr float MAX_LOAD_FACTOR__MAXIMUM = 0.95f;
+
     static const size_type REHASH_ON_HIGH_NB_PROBES__NPROBES = 128;
     static constexpr float REHASH_ON_HIGH_NB_PROBES__MIN_LOAD_FACTOR = 0.15f;
     
