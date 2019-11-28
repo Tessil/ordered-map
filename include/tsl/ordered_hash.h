@@ -919,7 +919,14 @@ public:
     }
     
     void max_load_factor(float ml) {
-        m_max_load_factor = std::max(MAX_LOAD_FACTOR__MINIMUM, std::min(ml, MAX_LOAD_FACTOR__MAXIMUM));
+        if(ml < MAX_LOAD_FACTOR__MINIMUM) {
+            ml = MAX_LOAD_FACTOR__MINIMUM;
+        }
+        else if(ml > MAX_LOAD_FACTOR__MAXIMUM) {
+            ml = MAX_LOAD_FACTOR__MAXIMUM;
+        }
+
+        m_max_load_factor = ml;
         m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
     }
     
