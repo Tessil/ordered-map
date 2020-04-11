@@ -441,7 +441,7 @@ public:
                                          KeyEqual(equal), 
                                          m_buckets_data(alloc), 
                                          m_buckets(static_empty_bucket_ptr()), 
-                                         m_mask(0),
+                                         m_hash_mask(0),
                                          m_values(alloc), 
                                          m_grow_on_next_insert(false)
     {
@@ -454,7 +454,7 @@ public:
             
             m_buckets_data.resize(bucket_count);
             m_buckets = m_buckets_data.data(),
-            m_mask = bucket_count - 1; 
+            m_hash_mask = bucket_count - 1;
         }
         
         this->max_load_factor(max_load_factor);
@@ -465,7 +465,7 @@ public:
                                              m_buckets_data(other.m_buckets_data),
                                              m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
                                                                               m_buckets_data.data()),
-                                             m_mask(other.m_mask),
+                                             m_hash_mask(other.m_hash_mask),
                                              m_values(other.m_values),
                                              m_grow_on_next_insert(other.m_grow_on_next_insert),
                                              m_max_load_factor(other.m_max_load_factor),
@@ -482,7 +482,7 @@ public:
                                             m_buckets_data(std::move(other.m_buckets_data)),
                                             m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
                                                                              m_buckets_data.data()),
-                                            m_mask(other.m_mask),
+                                            m_hash_mask(other.m_hash_mask),
                                             m_values(std::move(other.m_values)),
                                             m_grow_on_next_insert(other.m_grow_on_next_insert),
                                             m_max_load_factor(other.m_max_load_factor),
@@ -490,7 +490,7 @@ public:
     {
         other.m_buckets_data.clear();
         other.m_buckets = static_empty_bucket_ptr();
-        other.m_mask = 0;
+        other.m_hash_mask = 0;
         other.m_values.clear();
         other.m_grow_on_next_insert = false;
         other.m_load_threshold = 0;
@@ -505,7 +505,7 @@ public:
             m_buckets = m_buckets_data.empty()?static_empty_bucket_ptr():
                                                m_buckets_data.data();
                                                         
-            m_mask = other.m_mask;
+            m_hash_mask = other.m_hash_mask;
             m_values = other.m_values;
             m_grow_on_next_insert = other.m_grow_on_next_insert;
             m_max_load_factor = other.m_max_load_factor;
@@ -785,7 +785,7 @@ public:
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
         swap(m_buckets_data, other.m_buckets_data);
         swap(m_buckets, other.m_buckets);
-        swap(m_mask, other.m_mask);
+        swap(m_hash_mask, other.m_hash_mask);
         swap(m_values, other.m_values);
         swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
         swap(m_max_load_factor, other.m_max_load_factor);
@@ -1177,7 +1177,7 @@ private:
                                            m_buckets_data.data();
         // Everything should be noexcept from here.
         
-        m_mask = (bucket_count > 0)?(bucket_count - 1):0;
+        m_hash_mask = (bucket_count > 0)?(bucket_count - 1):0;
         this->max_load_factor(m_max_load_factor);
         m_grow_on_next_insert = false;
         
@@ -1437,7 +1437,7 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const noexcept {
-        return hash & m_mask;
+        return hash & m_hash_mask;
     }    
     
     std::size_t iterator_to_index(const_iterator it) const noexcept {
@@ -1526,7 +1526,7 @@ private:
         else {
             m_buckets_data.reserve(numeric_cast<size_type>(bucket_count_ds, "Deserialized bucket_count is too big."));
             m_buckets = m_buckets_data.data(),
-            m_mask = m_buckets_data.capacity() - 1; 
+            m_hash_mask = m_buckets_data.capacity() - 1; 
             
             reserve_space_for_values(numeric_cast<size_type>(nb_elements, "Deserialized nb_elements is too big."));
             for(slz_size_type el = 0; el < nb_elements; el++) {
@@ -1597,7 +1597,7 @@ private:
      */
     bucket_entry* m_buckets;
     
-    size_type m_mask;
+    size_type m_hash_mask;
     
     values_container_type m_values;
     
