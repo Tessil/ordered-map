@@ -1504,7 +1504,7 @@ private:
 
         if(max_load_factor < MAX_LOAD_FACTOR__MINIMUM || max_load_factor > MAX_LOAD_FACTOR__MAXIMUM) {
             TSL_OH_THROW_OR_TERMINATE(std::runtime_error, "Invalid max_load_factor. Check that the serializer "
-                                                          "and deserializer supports floats correctly as they "
+                                                          "and deserializer support floats correctly as they "
                                                           "can be converted implicitly to ints.");
         }
         
