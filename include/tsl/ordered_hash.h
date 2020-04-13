@@ -106,6 +106,12 @@ struct is_vector<T, typename std::enable_if<
                     >::type>: std::true_type {
 };
 
+// Only available in C++17, we need to be compatible with C++11
+template<class T>
+const T& clamp( const T& v, const T& lo, const T& hi) {
+    return std::min(hi, std::max(lo, v));
+}
+
 template<typename T, typename U>
 static T numeric_cast(U value, const char* error_message = "numeric_cast() failed.") {
     T ret = static_cast<T>(value);
@@ -919,12 +925,8 @@ public:
     }
     
     void max_load_factor(float ml) {
-        if(ml < MAX_LOAD_FACTOR__MINIMUM) {
-            ml = MAX_LOAD_FACTOR__MINIMUM;
-        }
-        else if(ml > MAX_LOAD_FACTOR__MAXIMUM) {
-            ml = MAX_LOAD_FACTOR__MAXIMUM;
-        }
+        m_max_load_factor = clamp(ml, float(MAX_LOAD_FACTOR__MINIMUM), 
+                                      float(MAX_LOAD_FACTOR__MAXIMUM));
 
         m_max_load_factor = ml;
         m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
