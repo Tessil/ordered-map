@@ -467,9 +467,9 @@ public:
                                                                               m_buckets_data.data()),
                                              m_hash_mask(other.m_hash_mask),
                                              m_values(other.m_values),
-                                             m_grow_on_next_insert(other.m_grow_on_next_insert),
+                                             m_load_threshold(other.m_load_threshold),
                                              m_max_load_factor(other.m_max_load_factor),
-                                             m_load_threshold(other.m_load_threshold)
+                                             m_grow_on_next_insert(other.m_grow_on_next_insert)
     {
     }
     
@@ -484,16 +484,16 @@ public:
                                                                              m_buckets_data.data()),
                                             m_hash_mask(other.m_hash_mask),
                                             m_values(std::move(other.m_values)),
-                                            m_grow_on_next_insert(other.m_grow_on_next_insert),
+                                            m_load_threshold(other.m_load_threshold),
                                             m_max_load_factor(other.m_max_load_factor),
-                                            m_load_threshold(other.m_load_threshold)
+                                            m_grow_on_next_insert(other.m_grow_on_next_insert)
     {
         other.m_buckets_data.clear();
         other.m_buckets = static_empty_bucket_ptr();
         other.m_hash_mask = 0;
         other.m_values.clear();
-        other.m_grow_on_next_insert = false;
         other.m_load_threshold = 0;
+        other.m_grow_on_next_insert = false;
     }
     
     ordered_hash& operator=(const ordered_hash& other) {
@@ -507,9 +507,9 @@ public:
                                                         
             m_hash_mask = other.m_hash_mask;
             m_values = other.m_values;
-            m_grow_on_next_insert = other.m_grow_on_next_insert;
-            m_max_load_factor = other.m_max_load_factor;
             m_load_threshold = other.m_load_threshold;
+            m_max_load_factor = other.m_max_load_factor;
+            m_grow_on_next_insert = other.m_grow_on_next_insert;
         }
         
         return *this;
@@ -787,9 +787,9 @@ public:
         swap(m_buckets, other.m_buckets);
         swap(m_hash_mask, other.m_hash_mask);
         swap(m_values, other.m_values);
-        swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
-        swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
+        swap(m_max_load_factor, other.m_max_load_factor);
+        swap(m_grow_on_next_insert, other.m_grow_on_next_insert);
     }
     
         
@@ -1601,9 +1601,10 @@ private:
     
     values_container_type m_values;
     
-    bool m_grow_on_next_insert;
-    float m_max_load_factor;
     size_type m_load_threshold;
+    float m_max_load_factor;
+    
+    bool m_grow_on_next_insert;
 };
 
 
