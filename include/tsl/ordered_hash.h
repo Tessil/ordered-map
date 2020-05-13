@@ -1026,6 +1026,10 @@ public:
         tsl_oh_assert(!empty());
         erase(std::prev(end()));
     }
+    void pop_front() {
+        tsl_oh_assert(!empty());
+        erase(begin());
+    }
     
     
     /**

@@ -725,6 +725,7 @@ public:
     
     
     void pop_back() { m_ht.pop_back(); }
+    void pop_front() { m_ht.pop_front(); }
     
     /**
      * Faster erase operation with an O(1) average complexity but it doesn't preserve the insertion order.
