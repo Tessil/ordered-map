@@ -987,7 +987,14 @@ public:
     const values_container_type& values_container() const noexcept {
         return m_values;
     }
-    
+    values_container_type extract_values_container() {
+      values_container_type output{};
+      std::swap(output, m_values);
+      for (auto &bucket : m_buckets_data)
+        bucket.clear();
+      return output;
+    }
+
     template<class U = values_container_type, typename std::enable_if<is_vector<U>::value>::type* = nullptr>    
     const typename values_container_type::value_type* data() const noexcept {
         return m_values.data();

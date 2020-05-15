@@ -670,6 +670,7 @@ public:
      * and are contiguous in the structure, no holes (size() == values_container().size()).
      */
     const values_container_type& values_container() const noexcept { return m_ht.values_container(); }
+    values_container_type extract_values_container() { return m_ht.extract_values_container(); }
 
     template<class U = values_container_type, typename std::enable_if<tsl::detail_ordered_hash::is_vector<U>::value>::type* = nullptr>    
     size_type capacity() const noexcept { return m_ht.capacity(); }
