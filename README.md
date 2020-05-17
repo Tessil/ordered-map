@@ -31,7 +31,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - The iterators are `RandomAccessIterator`.
 - Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
 - Slow `erase()` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a9f94a7889fa7fa92eea41ca63b3f98a4) for details). An O(1) `pop_back()` is also available.
-- The equality oprators `operator==` and `operator!=` are order dependent. Two `tsl::ordered_map` with the same values but inserted in a different order don't compare equal.
+- The equality operators `operator==` and `operator!=` are order dependent. Two `tsl::ordered_map` with the same values but inserted in a different order don't compare equal.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 tsl::ordered_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
