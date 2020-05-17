@@ -265,7 +265,7 @@ private:
  * 
  * 
  * 
- * The orderd_hash structure is a hash table which preserves the order of insertion of the elements.
+ * The ordered_hash structure is a hash table which preserves the order of insertion of the elements.
  * To do so, it stores the values in the ValueTypeContainer (m_values) using emplace_back at each
  * insertion of a new element. Another structure (m_buckets of type std::vector<bucket_entry>) will 
  * serve as buckets array for the hash table part. Each bucket stores an index which corresponds to 
@@ -452,7 +452,7 @@ public:
                                          m_grow_on_next_insert(false)
     {
         if(bucket_count > max_bucket_count()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maximum size.");
         }
         
         if(bucket_count > 0) {
@@ -1161,7 +1161,7 @@ private:
         tsl_oh_assert(bucket_count >= size_type(std::ceil(float(size())/max_load_factor())));
         
         if(bucket_count > max_bucket_count()) {
-            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
+            TSL_OH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maximum size.");
         }
         
         if(bucket_count > 0) {

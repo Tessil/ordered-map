@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(test_insert_pointer) {
 /**
  * serialize and deserialize
  */
-BOOST_AUTO_TEST_CASE(test_serialize_desearialize) {
+BOOST_AUTO_TEST_CASE(test_serialize_deserialize) {
     // insert x values; delete some values; serialize set; deserialize in new set; check equal.
     // for deserialization, test it with and without hash compatibility.
     const std::size_t nb_values = 1000;

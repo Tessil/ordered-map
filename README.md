@@ -263,7 +263,7 @@ struct deserializer {
 };
 ```
 
-Note that the implementation leaves binary compatibilty (endianness, float binary representation, size of int, ...) of the types it serializes/deserializes in the hands of the provided function objects if compatibilty is required.
+Note that the implementation leaves binary compatibility (endianness, float binary representation, size of int, ...) of the types it serializes/deserializes in the hands of the provided function objects if compatibility is required.
 
 More details regarding the `serialize` and `deserialize` methods can be found in the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html).
 

@@ -41,7 +41,7 @@ namespace tsl {
 
 
 /**
- * Implementation of an hash map using open adressing with robin hood with backshift delete to resolve collisions.
+ * Implementation of an hash map using open addressing with robin hood with backshift delete to resolve collisions.
  * 
  * The particularity of this hash map is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 
@@ -52,7 +52,7 @@ namespace tsl {
  * The Key and T must be copy constructible and/or move constructible. To use `unordered_erase` they both
  * must be swappable.
  * 
- * The behaviour of the hash map is undefinded if the destructor of Key or T throws an exception.
+ * The behaviour of the hash map is undefined if the destructor of Key or T throws an exception.
  * 
  * By default the maximum size of a map is limited to 2^32 - 1 values, if needed this can be changed through
  * the IndexType template parameter. Using an `uint64_t` will raise this limit to 2^64 - 1 values but each
@@ -779,8 +779,8 @@ public:
      * The `serializer` parameter must be a function object that supports the following call:
      *  - `template<typename U> void operator()(const U& value);` where the types `std::uint64_t`, `float` and `std::pair<Key, T>` must be supported for U.
      * 
-     * The implementation leaves binary compatibilty (endianness, IEEE 754 for floats, ...) of the types it serializes
-     * in the hands of the `Serializer` function object if compatibilty is required.
+     * The implementation leaves binary compatibility (endianness, IEEE 754 for floats, ...) of the types it serializes
+     * in the hands of the `Serializer` function object if compatibility is required.
      */
     template<class Serializer>
     void serialize(Serializer& serializer) const {
@@ -788,7 +788,7 @@ public:
     }
 
     /**
-     * Deserialize a previouly serialized map through the `deserializer` parameter.
+     * Deserialize a previously serialized map through the `deserializer` parameter.
      * 
      * The `deserializer` parameter must be a function object that supports the following calls:
      *  - `template<typename U> U operator()();` where the types `std::uint64_t`, `float` and `std::pair<Key, T>` must be supported for U.
@@ -802,8 +802,8 @@ public:
      * The behaviour is undefined if the type `Key` and `T` of the `ordered_map` are not the same as the
      * types used during serialization.
      * 
-     * The implementation leaves binary compatibilty (endianness, IEEE 754 for floats, size of int, ...) of the types it 
-     * deserializes in the hands of the `Deserializer` function object if compatibilty is required.
+     * The implementation leaves binary compatibility (endianness, IEEE 754 for floats, size of int, ...) of the types it 
+     * deserializes in the hands of the `Deserializer` function object if compatibility is required.
      */
     template<class Deserializer>
     static ordered_map deserialize(Deserializer& deserializer, bool hash_compatible = false) {
