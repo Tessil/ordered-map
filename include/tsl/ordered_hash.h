@@ -874,6 +874,17 @@ public:
         return (it_bucket != m_buckets_data.cend())?const_iterator(m_values.begin() + it_bucket->index()):end();
     }
     
+
+    template<class K>
+    bool contains(const K& key) const {
+        return contains(key, hash_key(key));
+    }
+    
+    template<class K>
+    bool contains(const K& key, std::size_t hash) const {
+        return find(key, hash) != cend();
+    }
+    
     
     template<class K>
     std::pair<iterator, iterator> equal_range(const K& key) {

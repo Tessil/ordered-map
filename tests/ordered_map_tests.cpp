@@ -1102,6 +1102,18 @@ BOOST_AUTO_TEST_CASE(test_at) {
 
 
 /**
+ * contains
+ */
+BOOST_AUTO_TEST_CASE(test_contains) {
+    tsl::ordered_map<std::int64_t, std::int64_t> map = {{0, 10}, {-2, 20}};
+    
+    BOOST_CHECK(map.contains(0));
+    BOOST_CHECK(map.contains(-2));
+    BOOST_CHECK(!map.contains(-3));
+}
+
+
+/**
  * equal_range
  */
 BOOST_AUTO_TEST_CASE(test_equal_range) {
@@ -1453,6 +1465,9 @@ BOOST_AUTO_TEST_CASE(test_empty_map) {
     BOOST_CHECK_EQUAL(map.count(""), 0);
     BOOST_CHECK_EQUAL(map.count("test"), 0);
     
+    BOOST_CHECK(!map.contains(""));
+    BOOST_CHECK(!map.contains("test"));
+    
     TSL_OH_CHECK_THROW(map.at(""), std::out_of_range);
     TSL_OH_CHECK_THROW(map.at("test"), std::out_of_range);
     
@@ -1492,6 +1507,15 @@ BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
     
     BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
     TSL_OH_CHECK_THROW(map.at(3, map.hash_function()(2)), std::out_of_range);
+    
+    /**
+     * count
+     */
+    BOOST_CHECK(map.contains(3, map.hash_function()(3)));
+    BOOST_CHECK(map_const.contains(3, map_const.hash_function()(3)));
+    
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
+    BOOST_CHECK(!map.contains(3, map.hash_function()(2)));
     
     /**
      * count
