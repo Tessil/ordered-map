@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Tessil/ordered-map.svg?branch=master)](https://travis-ci.org/Tessil/ordered-map) [![Build status](https://ci.appveyor.com/api/projects/status/7fug7piv59d0in36/branch/master?svg=true)](https://ci.appveyor.com/project/Tessil/ordered-map/branch/master)
+[![CI](https://github.com/Tessil/ordered-map/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Tessil/ordered-map/actions/workflows/ci.yml)
 
 ## C++ hash map and hash set which preserves the order of insertion
 
