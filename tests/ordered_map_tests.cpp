@@ -689,6 +689,22 @@ BOOST_AUTO_TEST_CASE(test_range_erase_same_iterators) {
 }
 
 /**
+ * erase_if
+ */
+BOOST_AUTO_TEST_CASE(test_erase_if) {
+  using value_type = tsl::ordered_map<int, int>::value_type;
+  tsl::ordered_map<int, int> map{{1, 1}, {2, 2}, {3, 2}, {4, 2}, {5, 3}};
+  auto num = erase_if(map, [](value_type &x) { return x.second == 2; });
+
+  BOOST_CHECK_EQUAL(num, 3);
+  BOOST_CHECK_EQUAL(map.size(), 2);
+  BOOST_CHECK_EQUAL(map.front().first, 1);
+  BOOST_CHECK_EQUAL(map.front().second, 1);
+  BOOST_CHECK_EQUAL(map.back().first, 5);
+  BOOST_CHECK_EQUAL(map.back().second, 3);
+}
+
+/**
  * unordered_erase
  */
 BOOST_AUTO_TEST_CASE(test_unordered_erase) {

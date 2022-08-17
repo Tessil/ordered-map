@@ -399,6 +399,17 @@ class ordered_map {
     return m_ht.erase(key, precalculated_hash);
   }
 
+  /**
+   * @copydoc erase(iterator pos)
+   *
+   * Erases all elements that satisfy the predicate pred. The method is in
+   * O(n).
+   */
+  template <class Predicate>
+  friend size_type erase_if(ordered_map &map, Predicate pred) {
+    return map.m_ht.erase_if(pred);
+  }
+
   void swap(ordered_map& other) { other.m_ht.swap(m_ht); }
 
   /*

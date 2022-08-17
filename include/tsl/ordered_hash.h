@@ -1098,6 +1098,28 @@ class ordered_hash : private Hash, private KeyEqual {
     return 1;
   }
 
+  template <class Predicate>
+  size_type erase_if(Predicate &pred) {
+    auto last = m_values.end();
+    auto first = std::find_if(m_values.begin(), last, pred);
+    if (first != last) {
+        for (auto it = first; ++it != last; ) {
+            auto it_bucket = find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
+            tsl_oh_assert(it_bucket != m_buckets_data.end());
+            if (pred(*it)) {
+                it_bucket->clear();
+            }
+            else {
+                it_bucket->set_index(static_cast<index_type>(std::distance(m_values.begin(), first)));
+                *first++ = std::move(*it);
+            }
+        }
+    }
+    auto deleted = static_cast<size_type>(std::distance(first, last));
+    m_values.erase(first, last);
+    return deleted;
+  }
+
   template <class Serializer>
   void serialize(Serializer& serializer) const {
     serialize_impl(serializer);

@@ -324,6 +324,17 @@ class ordered_set {
     return m_ht.erase(key, precalculated_hash);
   }
 
+  /**
+   * @copydoc erase(iterator pos)
+   *
+   * Erases all elements that satisfy the predicate pred. The method is in
+   * O(n).
+   */
+  template <class Predicate>
+  friend size_type erase_if(ordered_set &set, Predicate pred) {
+    return set.m_ht.erase_if(pred);
+  }
+
   void swap(ordered_set& other) { other.m_ht.swap(m_ht); }
 
   /*
