@@ -625,6 +625,15 @@ class ordered_set {
     return m_ht.values_container();
   }
 
+  /**
+   * Release the container in which the values are stored.
+   *
+   * The set is empty after this operation.
+   */
+  values_container_type release() {
+    return m_ht.release();
+  }
+
   template <class U = values_container_type,
             typename std::enable_if<
                 tsl::detail_ordered_hash::is_vector<U>::value>::type* = nullptr>
