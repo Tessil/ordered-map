@@ -1103,6 +1103,9 @@ class ordered_hash : private Hash, private KeyEqual {
     auto last = m_values.end();
     auto first = std::find_if(m_values.begin(), last, pred);
     if (first != last) {
+        auto it_bucket = find_key(KeySelect()(*first), hash_key(KeySelect()(*first)));
+        tsl_oh_assert(it_bucket != m_buckets_data.end());
+        it_bucket->clear();
         for (auto it = first; ++it != last; ) {
             auto it_bucket = find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
             tsl_oh_assert(it_bucket != m_buckets_data.end());
