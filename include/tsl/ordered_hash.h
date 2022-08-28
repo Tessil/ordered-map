@@ -1004,6 +1004,16 @@ class ordered_hash : private Hash, private KeyEqual {
     return m_values;
   }
 
+  values_container_type release() {
+    values_container_type ret;
+    for (auto& bucket : m_buckets_data) {
+      bucket.clear();
+    }
+    m_grow_on_next_insert = false;
+    std::swap(ret, m_values);
+    return ret;
+  }
+
   template <class U = values_container_type,
             typename std::enable_if<is_vector<U>::value>::type* = nullptr>
   const typename values_container_type::value_type* data() const noexcept {
