@@ -692,16 +692,28 @@ BOOST_AUTO_TEST_CASE(test_range_erase_same_iterators) {
  * erase_if
  */
 BOOST_AUTO_TEST_CASE(test_erase_if) {
-  using value_type = tsl::ordered_map<int, int>::value_type;
-  tsl::ordered_map<int, int> map{{1, 1}, {2, 2}, {3, 2}, {4, 2}, {5, 3}};
-  auto num = erase_if(map, [](value_type &x) { return x.second == 2; });
+  using map_type = tsl::ordered_map<int, int>;
+  using value_type = map_type::value_type;
+  tsl::ordered_map<int, int> map{{0, 2}, {16, 2}, {24, 2}, {5, 5},
+                                 {6, 2}, {7, 7},  {8, 8},  {9, 9}};
 
-  BOOST_CHECK_EQUAL(num, 3);
-  BOOST_CHECK_EQUAL(map.size(), 2);
-  BOOST_CHECK_EQUAL(map.front().first, 1);
-  BOOST_CHECK_EQUAL(map.front().second, 1);
-  BOOST_CHECK_EQUAL(map.back().first, 5);
-  BOOST_CHECK_EQUAL(map.back().second, 3);
+  auto n = erase_if(map, [](value_type const &x) { return x.second == 2; });
+  BOOST_CHECK_EQUAL(n, 4);
+
+  n = erase_if(map, [](value_type const &x) { return x.second == 2; });
+  BOOST_CHECK_EQUAL(n, 0);
+
+  BOOST_CHECK_EQUAL(map.size(), 4);
+
+  BOOST_CHECK_EQUAL(map.at(5), 5);
+  BOOST_CHECK_EQUAL(map.at(7), 7);
+  BOOST_CHECK_EQUAL(map.at(8), 8);
+  BOOST_CHECK_EQUAL(map.at(9), 9);
+
+  BOOST_CHECK(map.find(0) == map.end());
+  BOOST_CHECK(map.find(6) == map.end());
+  BOOST_CHECK(map.find(16) == map.end());
+  BOOST_CHECK(map.find(24) == map.end());
 }
 
 /**
