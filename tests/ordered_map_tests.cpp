@@ -697,10 +697,10 @@ BOOST_AUTO_TEST_CASE(test_erase_if) {
   tsl::ordered_map<int, int> map{{0, 2}, {16, 2}, {24, 2}, {5, 5},
                                  {6, 2}, {7, 7},  {8, 8},  {9, 9}};
 
-  auto n = erase_if(map, [](value_type const &x) { return x.second == 2; });
+  auto n = erase_if(map, [](const value_type& x) { return x.second == 2; });
   BOOST_CHECK_EQUAL(n, 4);
 
-  n = erase_if(map, [](value_type const &x) { return x.second == 2; });
+  n = erase_if(map, [](const value_type& x) { return x.second == 2; });
   BOOST_CHECK_EQUAL(n, 0);
 
   BOOST_CHECK_EQUAL(map.size(), 4);

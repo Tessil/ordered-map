@@ -1102,26 +1102,28 @@ class ordered_hash : private Hash, private KeyEqual {
    * Remove all entries for which the given predicate matches.
    */
   template <class Predicate>
-  size_type erase_if(Predicate &pred) {
+  size_type erase_if(Predicate& pred) {
     // Clear a bucket without touching the container holding the values.
     auto clear_bucket = [this](typename buckets_container_type::iterator it) {
-        tsl_oh_assert(it != m_buckets_data.end());
-        it->clear();
-        backward_shift(std::size_t(std::distance(m_buckets_data.begin(), it)));
+      tsl_oh_assert(it != m_buckets_data.end());
+      it->clear();
+      backward_shift(std::size_t(std::distance(m_buckets_data.begin(), it)));
     };
     using const_ref = typename values_container_type::const_reference;
     const auto last = m_values.end();
     auto first = m_values.begin();
     for (; first != last; ++first) {
       if (pred(static_cast<const_ref>(*first))) {
-        clear_bucket(find_key(KeySelect()(*first), hash_key(KeySelect()(*first))));
-        for (auto it = std::next(first); it != last; ) {
-          auto it_bucket = find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
+        clear_bucket(
+            find_key(KeySelect()(*first), hash_key(KeySelect()(*first))));
+        for (auto it = std::next(first); it != last;) {
+          auto it_bucket =
+              find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
           if (pred(static_cast<const_ref>(*it))) {
             clear_bucket(it_bucket);
-          }
-          else {
-            it_bucket->set_index(static_cast<index_type>(std::distance(m_values.begin(), first)));
+          } else {
+            it_bucket->set_index(static_cast<index_type>(
+                std::distance(m_values.begin(), first)));
             *first++ = std::move(*it);
           }
         }
