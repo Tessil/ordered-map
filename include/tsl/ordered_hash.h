@@ -1116,7 +1116,7 @@ class ordered_hash : private Hash, private KeyEqual {
       if (pred(static_cast<const_ref>(*first))) {
         clear_bucket(
             find_key(KeySelect()(*first), hash_key(KeySelect()(*first))));
-        for (auto it = std::next(first); it != last;) {
+        for (auto it = std::next(first); it != last; ++it) {
           auto it_bucket =
               find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
           if (pred(static_cast<const_ref>(*it))) {
