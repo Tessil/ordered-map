@@ -1207,7 +1207,7 @@ BOOST_AUTO_TEST_CASE(test_equal_range) {
  * release
  */
 BOOST_AUTO_TEST_CASE(test_release) {
-  auto vec = std::deque<std::pair<int, int>>{{1,1}, {2,2}, {3,3}};
+  auto vec = std::deque<std::pair<int, int>>{{1, 1}, {2, 2}, {3, 3}};
   auto map = tsl::ordered_map<int, int>{vec.begin(), vec.end()};
 
   BOOST_CHECK(map.release() == vec);

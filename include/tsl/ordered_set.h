@@ -630,9 +630,7 @@ class ordered_set {
    *
    * The set is empty after this operation.
    */
-  values_container_type release() {
-    return m_ht.release();
-  }
+  values_container_type release() { return m_ht.release(); }
 
   template <class U = values_container_type,
             typename std::enable_if<
