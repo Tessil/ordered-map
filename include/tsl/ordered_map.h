@@ -338,7 +338,7 @@ class ordered_map {
    * When erasing an element, the insert order will be preserved and no holes
    * will be present in the container returned by 'values_container()'.
    *
-   * The method is in O(bucket_count()), if the order is not important 
+   * The method is in O(bucket_count()), if the order is not important
    * 'unordered_erase(...)' method is faster with an O(1) average complexity.
    */
   iterator erase(iterator pos) { return m_ht.erase(pos); }

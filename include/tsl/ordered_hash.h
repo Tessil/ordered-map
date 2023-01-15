@@ -1293,7 +1293,8 @@ class ordered_hash : private Hash, private KeyEqual {
    *
    * delta must be equal to 1 or -1.
    */
-  void shift_indexes_in_buckets(index_type index_above_or_equal, int delta) noexcept {
+  void shift_indexes_in_buckets(index_type index_above_or_equal,
+                                int delta) noexcept {
     tsl_oh_assert(delta == 1 || delta == -1);
 
     for (bucket_entry& bucket : m_buckets_data) {
