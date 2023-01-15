@@ -357,72 +357,77 @@ BOOST_AUTO_TEST_CASE(test_insert_at_position) {
       {"Key9", 9}, {"Key10", 10}, {"Key11", 11}, {"Key12", 12}};
 
   BOOST_CHECK(map.insert_at_position(map.begin(), {"Key1", 1}).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12}}));
 
   auto it = map.insert_at_position(map.nth(2), {"Key3", 3});
   BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key3", 3)));
   BOOST_CHECK(it.second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12}}));
 
   BOOST_CHECK(map.insert_at_position(map.end(), {"Key7", 7}).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 
   BOOST_CHECK(map.insert_at_position(map.nth(4), {"Key5", 5}).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key5", 5},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key5", 5},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 
   it = map.insert_at_position(map.nth(3), {"Key8", 8});
   BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key8", 8)));
   BOOST_CHECK(!it.second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key5", 5},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key5", 5},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 }
 
 BOOST_AUTO_TEST_CASE(test_insert_at_position_high_collisions) {
@@ -448,72 +453,77 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_at_position) {
       {"Key9", 9}, {"Key10", 10}, {"Key11", 11}, {"Key12", 12}};
 
   BOOST_CHECK(map.try_emplace_at_position(map.begin(), "Key1", 1).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12}}));
 
   auto it = map.try_emplace_at_position(map.nth(2), "Key3", 3);
   BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key3", 3)));
   BOOST_CHECK(it.second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12}}));
 
   BOOST_CHECK(map.try_emplace_at_position(map.end(), "Key7", 7).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 
   BOOST_CHECK(map.try_emplace_at_position(map.nth(4), "Key5", 5).second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key5", 5},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key5", 5},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 
   it = map.try_emplace_at_position(map.nth(3), "Key8", 8);
   BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key8", 8)));
   BOOST_CHECK(!it.second);
-  BOOST_CHECK(map == (tsl::ordered_map<std::string, int>{{"Key1", 1},
-                                                         {"Key2", 2},
-                                                         {"Key3", 3},
-                                                         {"Key4", 4},
-                                                         {"Key5", 5},
-                                                         {"Key6", 6},
-                                                         {"Key8", 8},
-                                                         {"Key9", 9},
-                                                         {"Key10", 10},
-                                                         {"Key11", 11},
-                                                         {"Key12", 12},
-                                                         {"Key7", 7}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"Key1", 1},
+                                              {"Key2", 2},
+                                              {"Key3", 3},
+                                              {"Key4", 4},
+                                              {"Key5", 5},
+                                              {"Key6", 6},
+                                              {"Key8", 8},
+                                              {"Key9", 9},
+                                              {"Key10", 10},
+                                              {"Key11", 11},
+                                              {"Key12", 12},
+                                              {"Key7", 7}}));
 }
 
 /**
@@ -759,8 +769,8 @@ BOOST_AUTO_TEST_CASE(test_rehash_empty) {
 BOOST_AUTO_TEST_CASE(test_compare) {
   const tsl::ordered_map<std::string, int> map = {{"D", 1}, {"L", 2}, {"A", 3}};
 
-  BOOST_ASSERT(map == (tsl::ordered_map<std::string, int>{
-                          {"D", 1}, {"L", 2}, {"A", 3}}));
+  BOOST_ASSERT(utils::test_is_equal(
+      map, tsl::ordered_map<std::string, int>{{"D", 1}, {"L", 2}, {"A", 3}}));
   BOOST_ASSERT(map != (tsl::ordered_map<std::string, int>{
                           {"L", 2}, {"D", 1}, {"A", 3}}));
 
@@ -796,7 +806,8 @@ BOOST_AUTO_TEST_CASE(test_clear) {
   map.insert({5, -5});
   map.insert({{1, -1}, {2, -1}, {4, -4}, {3, -3}});
 
-  BOOST_CHECK(map == (HMap({{5, -5}, {1, -1}, {2, -1}, {4, -4}, {3, -3}})));
+  BOOST_CHECK(utils::test_is_equal(
+      map, HMap({{5, -5}, {1, -1}, {2, -1}, {4, -4}, {3, -3}})));
 }
 
 /**
@@ -1010,8 +1021,9 @@ BOOST_AUTO_TEST_CASE(test_move_constructor) {
   HMap map = utils::get_filled_hash_map<HMap>(nb_values);
   HMap map_move(std::move(map));
 
-  BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
-  BOOST_CHECK(map == (HMap()));
+  BOOST_CHECK(utils::test_is_equal(
+      map_move, utils::get_filled_hash_map<HMap>(nb_values)));
+  BOOST_CHECK(utils::test_is_equal(map, HMap()));
 
   for (std::size_t i = nb_values; i < nb_values * 2; i++) {
     map_move.insert(
@@ -1019,7 +1031,8 @@ BOOST_AUTO_TEST_CASE(test_move_constructor) {
   }
 
   BOOST_CHECK_EQUAL(map_move.size(), nb_values * 2);
-  BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values * 2));
+  BOOST_CHECK(utils::test_is_equal(
+      map_move, utils::get_filled_hash_map<HMap>(nb_values * 2)));
 }
 
 BOOST_AUTO_TEST_CASE(test_move_constructor_empty) {
@@ -1043,8 +1056,9 @@ BOOST_AUTO_TEST_CASE(test_move_operator) {
   HMap map_move = utils::get_filled_hash_map<HMap>(1);
   map_move = std::move(map);
 
-  BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
-  BOOST_CHECK(map == (HMap()));
+  BOOST_CHECK(utils::test_is_equal(
+      map_move, utils::get_filled_hash_map<HMap>(nb_values)));
+  BOOST_CHECK(utils::test_is_equal(map, HMap()));
 
   for (std::size_t i = nb_values; i < nb_values * 2; i++) {
     map_move.insert(
@@ -1052,7 +1066,8 @@ BOOST_AUTO_TEST_CASE(test_move_operator) {
   }
 
   BOOST_CHECK_EQUAL(map_move.size(), nb_values * 2);
-  BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values * 2));
+  BOOST_CHECK(utils::test_is_equal(
+      map_move, utils::get_filled_hash_map<HMap>(nb_values * 2)));
 }
 
 BOOST_AUTO_TEST_CASE(test_move_operator_empty) {
@@ -1077,7 +1092,8 @@ BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
   BOOST_CHECK_EQUAL(map.size(), 0);
 
   map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
-  BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
+  BOOST_CHECK(utils::test_is_equal(
+      map, HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
@@ -1090,7 +1106,8 @@ BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
   BOOST_CHECK_EQUAL(map.size(), 0);
 
   map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
-  BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
+  BOOST_CHECK(utils::test_is_equal(
+      map, HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_use_after_move_constructor) {
@@ -1100,7 +1117,7 @@ BOOST_AUTO_TEST_CASE(test_use_after_move_constructor) {
   HMap map = utils::get_filled_hash_map<HMap>(nb_values);
   HMap map_move(std::move(map));
 
-  BOOST_CHECK(map == (HMap()));
+  BOOST_CHECK(utils::test_is_equal(map, HMap()));
   BOOST_CHECK_EQUAL(map.size(), 0);
   BOOST_CHECK_EQUAL(map.bucket_count(), 0);
   BOOST_CHECK_EQUAL(map.erase("a"), 0);
@@ -1112,7 +1129,7 @@ BOOST_AUTO_TEST_CASE(test_use_after_move_constructor) {
   }
 
   BOOST_CHECK_EQUAL(map.size(), nb_values);
-  BOOST_CHECK(map == map_move);
+  BOOST_CHECK(utils::test_is_equal(map, map_move));
 }
 
 BOOST_AUTO_TEST_CASE(test_use_after_move_operator) {
@@ -1123,7 +1140,7 @@ BOOST_AUTO_TEST_CASE(test_use_after_move_operator) {
   HMap map_move(0);
   map_move = std::move(map);
 
-  BOOST_CHECK(map == (HMap()));
+  BOOST_CHECK(utils::test_is_equal(map, HMap()));
   BOOST_CHECK_EQUAL(map.size(), 0);
   BOOST_CHECK_EQUAL(map.bucket_count(), 0);
   BOOST_CHECK_EQUAL(map.erase("a"), 0);
@@ -1135,7 +1152,7 @@ BOOST_AUTO_TEST_CASE(test_use_after_move_operator) {
   }
 
   BOOST_CHECK_EQUAL(map.size(), nb_values);
-  BOOST_CHECK(map == map_move);
+  BOOST_CHECK(utils::test_is_equal(map, map_move));
 }
 
 BOOST_AUTO_TEST_CASE(test_copy_constructor_and_operator) {
@@ -1149,11 +1166,11 @@ BOOST_AUTO_TEST_CASE(test_copy_constructor_and_operator) {
   HMap map_copy3 = utils::get_filled_hash_map<HMap>(1);
   map_copy3 = map;
 
-  BOOST_CHECK(map == map_copy);
+  BOOST_CHECK(utils::test_is_equal(map, map_copy));
   map.clear();
 
-  BOOST_CHECK(map_copy == map_copy2);
-  BOOST_CHECK(map_copy == map_copy3);
+  BOOST_CHECK(utils::test_is_equal(map_copy, map_copy2));
+  BOOST_CHECK(utils::test_is_equal(map_copy, map_copy3));
 }
 
 BOOST_AUTO_TEST_CASE(test_copy_constructor_empty) {
@@ -1266,18 +1283,21 @@ BOOST_AUTO_TEST_CASE(test_swap) {
   using std::swap;
   swap(map, map2);
 
-  BOOST_CHECK(map ==
-              (tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}}));
-  BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{
-                          {1, 10}, {8, 80}, {3, 30}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map2,
+      tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}}));
 
   map.insert({6, 60});
   map2.insert({4, 40});
 
-  BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{
-                         {4, 40}, {5, 50}, {6, 60}}));
-  BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{
-                          {1, 10}, {8, 80}, {3, 30}, {4, 40}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map,
+      tsl::ordered_map<std::int64_t, std::int64_t>{{4, 40}, {5, 50}, {6, 60}}));
+  BOOST_CHECK(
+      utils::test_is_equal(map2, tsl::ordered_map<std::int64_t, std::int64_t>{
+                                     {1, 10}, {8, 80}, {3, 30}, {4, 40}}));
 }
 
 BOOST_AUTO_TEST_CASE(test_swap_empty) {
@@ -1288,16 +1308,20 @@ BOOST_AUTO_TEST_CASE(test_swap_empty) {
   using std::swap;
   swap(map, map2);
 
-  BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{}));
-  BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{
-                          {1, 10}, {8, 80}, {3, 30}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::int64_t, std::int64_t>{}));
+  BOOST_CHECK(utils::test_is_equal(
+      map2,
+      tsl::ordered_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}}));
 
   map.insert({6, 60});
   map2.insert({4, 40});
 
-  BOOST_CHECK(map == (tsl::ordered_map<std::int64_t, std::int64_t>{{6, 60}}));
-  BOOST_CHECK(map2 == (tsl::ordered_map<std::int64_t, std::int64_t>{
-                          {1, 10}, {8, 80}, {3, 30}, {4, 40}}));
+  BOOST_CHECK(utils::test_is_equal(
+      map, tsl::ordered_map<std::int64_t, std::int64_t>{{6, 60}}));
+  BOOST_CHECK(
+      utils::test_is_equal(map2, tsl::ordered_map<std::int64_t, std::int64_t>{
+                                     {1, 10}, {8, 80}, {3, 30}, {4, 40}}));
 }
 
 /**
@@ -1313,11 +1337,11 @@ BOOST_AUTO_TEST_CASE(test_serialize_deserialize_empty) {
 
   deserializer dserial(serial.str());
   auto empty_map_deserialized = decltype(empty_map)::deserialize(dserial, true);
-  BOOST_CHECK(empty_map_deserialized == empty_map);
+  BOOST_CHECK(utils::test_is_equal(empty_map_deserialized, empty_map));
 
   deserializer dserial2(serial.str());
   empty_map_deserialized = decltype(empty_map)::deserialize(dserial2, false);
-  BOOST_CHECK(empty_map_deserialized == empty_map);
+  BOOST_CHECK(utils::test_is_equal(empty_map_deserialized, empty_map));
 }
 
 BOOST_AUTO_TEST_CASE(test_serialize_deserialize) {
@@ -1342,11 +1366,11 @@ BOOST_AUTO_TEST_CASE(test_serialize_deserialize) {
 
   deserializer dserial(serial.str());
   auto map_deserialized = decltype(map)::deserialize(dserial, true);
-  BOOST_CHECK(map == map_deserialized);
+  BOOST_CHECK(utils::test_is_equal(map, map_deserialized));
 
   deserializer dserial2(serial.str());
   map_deserialized = decltype(map)::deserialize(dserial2, false);
-  BOOST_CHECK(map_deserialized == map);
+  BOOST_CHECK(utils::test_is_equal(map_deserialized, map));
 }
 
 BOOST_AUTO_TEST_CASE(test_serialize_deserialize_with_different_hash) {

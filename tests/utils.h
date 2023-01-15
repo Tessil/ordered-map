@@ -167,6 +167,10 @@ class utils {
       return false;
     }
 
+    if(lhs.size() != rhs.size()) {
+      return false;
+    }
+
     for (const auto& val_lhs : lhs) {
       auto it_rhs = rhs.find(val_lhs.first);
       if (it_rhs == rhs.end()) {
