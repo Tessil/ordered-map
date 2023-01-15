@@ -1278,7 +1278,7 @@ class ordered_hash : private Hash, private KeyEqual {
      * shift the indexes by -1 in the buckets array for these values.
      */
     if (it_bucket->index() != m_values.size()) {
-      shift_indexes_in_buckets(it_bucket->index(), -1);
+      shift_indexes_in_buckets(it_bucket->index() + 1, -1);
     }
 
     // Mark the bucket as empty and do a backward shift of the values on the
@@ -1289,26 +1289,22 @@ class ordered_hash : private Hash, private KeyEqual {
   }
 
   /**
-   * Go through each value from [from_ivalue, m_values.size()) in m_values and
-   * for each bucket corresponding to the value, shift the index by delta.
+   * Shift any index >= index_above_or_equal in m_buckets_data by delta.
    *
    * delta must be equal to 1 or -1.
    */
-  void shift_indexes_in_buckets(index_type from_ivalue, int delta) noexcept {
+  void shift_indexes_in_buckets(index_type index_above_or_equal, int delta) noexcept {
     tsl_oh_assert(delta == 1 || delta == -1);
 
-    for (std::size_t ivalue = from_ivalue; ivalue < m_values.size(); ivalue++) {
-      // All the values in m_values have been shifted by delta. Find the bucket
-      // corresponding to the value m_values[ivalue]
-      const index_type old_index = static_cast<index_type>(ivalue - delta);
-
-      std::size_t ibucket =
-          bucket_for_hash(hash_key(KeySelect()(m_values[ivalue])));
-      while (m_buckets[ibucket].index() != old_index) {
-        ibucket = next_bucket(ibucket);
+    for (bucket_entry& bucket : m_buckets_data) {
+      if (!bucket.empty() && bucket.index() >= index_above_or_equal) {
+        tsl_oh_assert(delta >= 0 ||
+                      bucket.index() >= static_cast<index_type>(-delta));
+        tsl_oh_assert(delta <= 0 ||
+                      (bucket_entry::max_size() - bucket.index()) >=
+                          static_cast<index_type>(delta));
+        bucket.set_index(static_cast<index_type>(bucket.index() + delta));
       }
-
-      m_buckets[ibucket].set_index(index_type(ivalue));
     }
   }
 
@@ -1412,16 +1408,16 @@ class ordered_hash : private Hash, private KeyEqual {
     m_values.emplace(insert_position, std::forward<Args>(value_type_args)...);
 #endif
 
-    insert_index(ibucket, dist_from_ideal_bucket, index_insert_position,
-                 bucket_entry::truncate_hash(hash));
-
     /*
      * The insertion didn't happend at the end of the m_values container,
      * we need to shift the indexes in m_buckets_data.
      */
     if (index_insert_position != m_values.size() - 1) {
-      shift_indexes_in_buckets(index_insert_position + 1, 1);
+      shift_indexes_in_buckets(index_insert_position, 1);
     }
+
+    insert_index(ibucket, dist_from_ideal_bucket, index_insert_position,
+                 bucket_entry::truncate_hash(hash));
 
     return std::make_pair(iterator(m_values.begin() + index_insert_position),
                           true);

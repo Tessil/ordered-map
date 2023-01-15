@@ -155,6 +155,50 @@ class utils {
 
   template <typename HMap>
   static HMap get_filled_hash_map(std::size_t nb_elements);
+
+  /**
+   * The ordered_map equality operator only compares the m_values structure as
+   * it is sufficient for ensuring equality. This method do a more extensive
+   * comparison to ensure that the internal state of the map is coherent.
+   */
+  template <typename HMap>
+  static bool test_is_equal(const HMap& lhs, const HMap& rhs) {
+    if (lhs != rhs) {
+      return false;
+    }
+
+    for (const auto& val_lhs : lhs) {
+      auto it_rhs = rhs.find(val_lhs.first);
+      if (it_rhs == rhs.end()) {
+        return false;
+      }
+
+      if (val_lhs.first != it_rhs->first) {
+        return false;
+      }
+
+      if (val_lhs.second != it_rhs->second) {
+        return false;
+      }
+    }
+
+    for (const auto& val_rhs : rhs) {
+      auto it_lhs = lhs.find(val_rhs.first);
+      if (it_lhs == lhs.end()) {
+        return false;
+      }
+
+      if (it_lhs->first != val_rhs.first) {
+        return false;
+      }
+
+      if (it_lhs->second != val_rhs.second) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 };
 
 template <>

@@ -425,6 +425,20 @@ BOOST_AUTO_TEST_CASE(test_insert_at_position) {
                                                          {"Key7", 7}}));
 }
 
+BOOST_AUTO_TEST_CASE(test_insert_at_position_high_collisions) {
+  tsl::ordered_map<int, int, identity_hash<int>> map(32);
+  BOOST_CHECK_EQUAL(map.bucket_count(), 32);
+  map.insert({{0, 0}, {32, -32}, {64, -64}, {96, -96}, {128, -128}});
+
+  auto it = map.insert_at_position(map.begin(), {160, -160});
+  BOOST_CHECK(*it.first == (std::pair<int, int>(160, -160)));
+  BOOST_CHECK(it.second);
+  BOOST_CHECK(utils::test_is_equal(
+      map,
+      tsl::ordered_map<int, int, identity_hash<int>>{
+          {160, -160}, {0, 0}, {32, -32}, {64, -64}, {96, -96}, {128, -128}}));
+}
+
 /**
  * try_emplace_at_position
  */
