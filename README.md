@@ -4,7 +4,7 @@
 
 The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's [OrderedDict](https://docs.python.org/3/library/collections.html#collections.OrderedDict). When iterating over the map, the values will be returned in the same order as they were inserted.
 
-The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs. This provides fast iteration but with the drawback of an O(n) erase operation. An O(1) `pop_back()` and an O(1) `unordered_erase()` functions are available.
+The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a `std::deque` is used for this structure, but it's also possible to  use a `std::vector`. This structure is directly accessible through the `values_container()` method and if the structure is a `std::vector`, a `data()` method is also provided to easily interact with C APIs. This provides fast iteration but with the drawback of an O(bucket_count) erase operation. An O(1) `pop_back()` and an O(1) `unordered_erase()` functions are available. **If ordered erase is often used, another data structure is recommended.**
 
 To resolve collisions on hashes, the library uses linear robin hood probing with backward shift deletion.
 
@@ -30,7 +30,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 `tsl::ordered_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
 - The iterators are `RandomAccessIterator`.
 - Iterator invalidation behaves in a way closer to `std::vector` and `std::deque` (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details). If you use `std::vector` as `ValueTypeContainer`, you can use `reserve()` to preallocate some space and avoid the invalidation of the iterators on insert.
-- Slow `erase()` operation, it has a complexity of O(n). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a9f94a7889fa7fa92eea41ca63b3f98a4) for details). An O(1) `pop_back()` is also available.
+- Slow `erase()` operation, it has a complexity of O(bucket_count). A faster O(1) version `unordered_erase()` exists, but it breaks the insertion order (see [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a9f94a7889fa7fa92eea41ca63b3f98a4) for details). An O(1) `pop_back()` is also available.
 - The equality operators `operator==` and `operator!=` are order dependent. Two `tsl::ordered_map` with the same values but inserted in a different order don't compare equal.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++

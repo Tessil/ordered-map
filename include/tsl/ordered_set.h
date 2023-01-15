@@ -263,8 +263,8 @@ class ordered_set {
    * When erasing an element, the insert order will be preserved and no holes
    * will be present in the container returned by 'values_container()'.
    *
-   * The method is in O(n), if the order is not important 'unordered_erase(...)'
-   * method is faster with an O(1) average complexity.
+   * The method is in O(bucket_count()), if the order is not important 
+   * 'unordered_erase(...)' method is faster with an O(1) average complexity.
    */
   iterator erase(iterator pos) { return m_ht.erase(pos); }
 
@@ -645,7 +645,7 @@ class ordered_set {
    * Insert the value before pos shifting all the elements on the right of pos
    * (including pos) one position to the right.
    *
-   * Amortized linear time-complexity in the distance between pos and end().
+   * O(bucket_count()) runtime complexity.
    */
   std::pair<iterator, bool> insert_at_position(const_iterator pos,
                                                const value_type& value) {
