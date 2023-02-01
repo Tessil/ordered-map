@@ -43,13 +43,17 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 - By default the map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values. This can be raised through the `IndexType` class template parameter, check the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details. 
 - No support for some bucket related methods (like `bucket_size`, `bucket`, ...).
 
-
 Thread-safety guarantee is the same as `std::unordered_map`  (i.e. possible to have multiple concurrent readers with no writer).
-
-Concerning the strong exception guarantee, it holds only if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type `T` is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
 
 These differences also apply between `std::unordered_set` and `tsl::ordered_set`.
 
+### Exception Guarantees
+
+If not mentioned otherwise, functions have the strong exception guarantee, see [details](https://en.cppreference.com/w/cpp/language/exceptions). We below list cases in which this guarantee is not provided.
+
+The guarantee is only provided if `ValueContainer::emplace_back` has the strong exception guarantee (which is true for `std::vector` and `std::deque` as long as the type `T` is not a move-only type with a move constructor that may throw an exception, see [details](http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions)).
+
+The `tsl::ordered_map::erase_if` and `tsl::ordered_set::erase_if` functions only have the guarantee under the preconditions listed in their documentation.
 
 ### Installation
 
