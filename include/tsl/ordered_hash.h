@@ -1108,6 +1108,50 @@ class ordered_hash : private Hash, private KeyEqual {
     return 1;
   }
 
+  /**
+   * Remove all entries for which the given predicate matches.
+   */
+  template <class Predicate>
+  size_type erase_if(Predicate& pred) {
+    // Get the bucket associated with the given element.
+    auto get_bucket = [this](typename values_container_type::iterator it) {
+      return find_key(KeySelect()(*it), hash_key(KeySelect()(*it)));
+    };
+    // Clear a bucket without touching the container holding the values.
+    auto clear_bucket = [this](typename buckets_container_type::iterator it) {
+      tsl_oh_assert(it != m_buckets_data.end());
+      it->clear();
+      backward_shift(std::size_t(std::distance(m_buckets_data.begin(), it)));
+    };
+    // Ensure that only const references are passed to the predicate.
+    auto cpred = [&pred](typename values_container_type::const_reference x) {
+      return pred(x);
+    };
+
+    // Find first element that matches the predicate.
+    const auto last = m_values.end();
+    auto first = std::find_if(m_values.begin(), last, cpred);
+    if (first == last) {
+      return 0;
+    }
+    // Remove all elements that match the predicate.
+    clear_bucket(get_bucket(first));
+    for (auto it = std::next(first); it != last; ++it) {
+      auto it_bucket = get_bucket(it);
+      if (cpred(*it)) {
+        clear_bucket(it_bucket);
+      } else {
+        it_bucket->set_index(
+            static_cast<index_type>(std::distance(m_values.begin(), first)));
+        *first++ = std::move(*it);
+      }
+    }
+    // Resize the vector and return the number of deleted elements.
+    auto deleted = static_cast<size_type>(std::distance(first, last));
+    m_values.erase(first, last);
+    return deleted;
+  }
+
   template <class Serializer>
   void serialize(Serializer& serializer) const {
     serialize_impl(serializer);

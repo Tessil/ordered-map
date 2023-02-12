@@ -123,6 +123,16 @@ BOOST_AUTO_TEST_CASE(test_insert_pointer) {
   BOOST_CHECK_EQUAL(**set.begin(), value);
 }
 
+BOOST_AUTO_TEST_CASE(test_erase_if) {
+  tsl::ordered_set<int> set{1, 2, 3, 4, 5};
+  auto num = erase_if(set, [](int x) { return 2 <= x && x <= 4; });
+
+  BOOST_CHECK_EQUAL(num, 3);
+  BOOST_CHECK_EQUAL(set.size(), 2);
+  BOOST_CHECK_EQUAL(set.front(), 1);
+  BOOST_CHECK_EQUAL(set.back(), 5);
+}
+
 /**
  * serialize and deserialize
  */

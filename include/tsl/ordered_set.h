@@ -324,6 +324,20 @@ class ordered_set {
     return m_ht.erase(key, precalculated_hash);
   }
 
+  /**
+   * @copydoc erase(iterator pos)
+   *
+   * Erases all elements that satisfy the predicate pred. The method is in
+   * O(n). Note that the function only has the strong exception guarantee if
+   * the Predicate, Hash, and Key predicates and moves of keys and values do
+   * not throw. If an exception is raised, the object is in an invalid state.
+   * It can still be cleared and destroyed without leaking memory.
+   */
+  template <class Predicate>
+  friend size_type erase_if(ordered_set &set, Predicate pred) {
+    return set.m_ht.erase_if(pred);
+  }
+
   void swap(ordered_set& other) { other.m_ht.swap(m_ht); }
 
   /*
