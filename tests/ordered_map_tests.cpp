@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(test_insert_at_position) {
                                               {"Key12", 12}}));
 
   auto it = map.insert_at_position(map.nth(2), {"Key3", 3});
-  BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key3", 3)));
+  BOOST_CHECK(*it.first == (std::pair<const std::string, int>("Key3", 3)));
   BOOST_CHECK(it.second);
   BOOST_CHECK(utils::test_is_equal(
       map, tsl::ordered_map<std::string, int>{{"Key1", 1},
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(test_insert_at_position) {
                                               {"Key7", 7}}));
 
   it = map.insert_at_position(map.nth(3), {"Key8", 8});
-  BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key8", 8)));
+  BOOST_CHECK(*it.first == (std::pair<const std::string, int>("Key8", 8)));
   BOOST_CHECK(!it.second);
   BOOST_CHECK(utils::test_is_equal(
       map, tsl::ordered_map<std::string, int>{{"Key1", 1},
@@ -436,7 +436,7 @@ BOOST_AUTO_TEST_CASE(test_insert_at_position_high_collisions) {
   map.insert({{0, 0}, {32, -32}, {64, -64}, {96, -96}, {128, -128}});
 
   auto it = map.insert_at_position(map.begin(), {160, -160});
-  BOOST_CHECK(*it.first == (std::pair<int, int>(160, -160)));
+  BOOST_CHECK(*it.first == (std::pair<const int, int>(160, -160)));
   BOOST_CHECK(it.second);
   BOOST_CHECK(utils::test_is_equal(
       map,
@@ -465,7 +465,7 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_at_position) {
                                               {"Key12", 12}}));
 
   auto it = map.try_emplace_at_position(map.nth(2), "Key3", 3);
-  BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key3", 3)));
+  BOOST_CHECK(*it.first == (std::pair<const std::string, int>("Key3", 3)));
   BOOST_CHECK(it.second);
   BOOST_CHECK(utils::test_is_equal(
       map, tsl::ordered_map<std::string, int>{{"Key1", 1},
@@ -509,7 +509,7 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_at_position) {
                                               {"Key7", 7}}));
 
   it = map.try_emplace_at_position(map.nth(3), "Key8", 8);
-  BOOST_CHECK(*it.first == (std::pair<std::string, int>("Key8", 8)));
+  BOOST_CHECK(*it.first == (std::pair<const std::string, int>("Key8", 8)));
   BOOST_CHECK(!it.second);
   BOOST_CHECK(utils::test_is_equal(
       map, tsl::ordered_map<std::string, int>{{"Key1", 1},
@@ -567,7 +567,7 @@ BOOST_AUTO_TEST_CASE(test_range_erase) {
     if (i >= 10 && i < 220) {
       continue;
     }
-    BOOST_CHECK(*it == (std::pair<std::string, std::int64_t>(
+    BOOST_CHECK(*it == (std::pair<const std::string, std::int64_t>(
                            utils::get_key<std::string>(i),
                            utils::get_value<std::int64_t>(i))));
     ++it;
@@ -1457,13 +1457,13 @@ BOOST_AUTO_TEST_CASE(test_nth) {
   map.insert({0, 0});
 
   BOOST_REQUIRE(map.nth(0) != map.end());
-  BOOST_CHECK(*map.nth(0) == (std::pair<std::int64_t, std::int64_t>(1, 10)));
+  BOOST_CHECK(*map.nth(0) == (std::pair<const std::int64_t, std::int64_t>(1, 10)));
 
   BOOST_REQUIRE(map.nth(1) != map.end());
-  BOOST_CHECK(*map.nth(1) == (std::pair<std::int64_t, std::int64_t>(2, 20)));
+  BOOST_CHECK(*map.nth(1) == (std::pair<const std::int64_t, std::int64_t>(2, 20)));
 
   BOOST_REQUIRE(map.nth(2) != map.end());
-  BOOST_CHECK(*map.nth(2) == (std::pair<std::int64_t, std::int64_t>(0, 0)));
+  BOOST_CHECK(*map.nth(2) == (std::pair<const std::int64_t, std::int64_t>(0, 0)));
 
   BOOST_REQUIRE(map.nth(3) == map.end());
 

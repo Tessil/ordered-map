@@ -95,6 +95,15 @@ class ordered_map {
     key_type& operator()(std::pair<Key, T>& key_value) noexcept {
       return key_value.first;
     }
+
+    const key_type& operator()(
+        const std::pair<const Key, T>& key_value) const noexcept {
+      return key_value.first;
+    }
+
+    const key_type& operator()(std::pair<const Key, T>& key_value) noexcept {
+      return key_value.first;
+    }
   };
 
   class ValueSelect {
@@ -111,10 +120,9 @@ class ordered_map {
     }
   };
 
-  using ht =
-      detail_ordered_hash::ordered_hash<std::pair<Key, T>, KeySelect,
-                                        ValueSelect, Hash, KeyEqual, Allocator,
-                                        ValueTypeContainer, IndexType>;
+  using ht = detail_ordered_hash::ordered_hash<
+      std::pair<Key, T>, KeySelect, ValueSelect, Hash, KeyEqual, Allocator,
+      ValueTypeContainer, IndexType, std::pair<const Key, T>>;
 
  public:
   using key_type = typename ht::key_type;
@@ -409,7 +417,7 @@ class ordered_map {
    * It can still be cleared and destroyed without leaking memory.
    */
   template <class Predicate>
-  friend size_type erase_if(ordered_map &map, Predicate pred) {
+  friend size_type erase_if(ordered_map& map, Predicate pred) {
     return map.m_ht.erase_if(pred);
   }
 

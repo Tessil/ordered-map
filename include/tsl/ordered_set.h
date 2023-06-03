@@ -92,9 +92,10 @@ class ordered_set {
     key_type& operator()(Key& key) noexcept { return key; }
   };
 
-  using ht = detail_ordered_hash::ordered_hash<Key, KeySelect, void, Hash,
-                                               KeyEqual, Allocator,
-                                               ValueTypeContainer, IndexType>;
+  using ht =
+      detail_ordered_hash::ordered_hash<Key, KeySelect, void, Hash, KeyEqual,
+                                        Allocator, ValueTypeContainer,
+                                        IndexType, Key>;
 
  public:
   using key_type = typename ht::key_type;
@@ -334,7 +335,7 @@ class ordered_set {
    * It can still be cleared and destroyed without leaking memory.
    */
   template <class Predicate>
-  friend size_type erase_if(ordered_set &set, Predicate pred) {
+  friend size_type erase_if(ordered_set& set, Predicate pred) {
     return set.m_ht.erase_if(pred);
   }
 
