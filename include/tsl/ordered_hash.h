@@ -288,7 +288,7 @@ class bucket_entry {
  */
 template <class ValueType, class KeySelect, class ValueSelect, class Hash,
           class KeyEqual, class Allocator, class ValueTypeContainer,
-          class IndexType>
+          class IndexType, class ValueTypeIt>
 class ordered_hash : private Hash, private KeyEqual {
  private:
   template <typename U>
@@ -334,6 +334,12 @@ class ordered_hash : private Hash, private KeyEqual {
 
   using values_container_type = ValueTypeContainer;
 
+  using value_type_it = ValueTypeIt;
+  using reference_it = value_type_it&;
+  using const_reference_it = const value_type_it&;
+  using pointer_it = value_type_it*;
+  using const_pointer_it = const value_type_it*;
+
  public:
   template <bool IsConst>
   class ordered_iterator {
@@ -348,10 +354,16 @@ class ordered_hash : private Hash, private KeyEqual {
 
    public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = const typename ordered_hash::value_type;
+    using value_type = typename ordered_hash::value_type_it;
     using difference_type = typename iterator::difference_type;
-    using reference = value_type&;
-    using pointer = value_type*;
+    using reference =
+        typename std::conditional<IsConst,
+                                  typename ordered_hash::const_reference_it,
+                                  typename ordered_hash::reference_it>::type;
+    using pointer =
+        typename std::conditional<IsConst,
+                                  typename ordered_hash::const_pointer_it,
+                                  typename ordered_hash::pointer_it>::type;
 
     ordered_iterator() noexcept {}
 
@@ -384,8 +396,12 @@ class ordered_hash : private Hash, private KeyEqual {
       return U()(*m_iterator);
     }
 
-    reference operator*() const { return *m_iterator; }
-    pointer operator->() const { return m_iterator.operator->(); }
+    reference operator*() const {
+      return reinterpret_cast<reference>(*m_iterator);
+    }
+    pointer operator->() const {
+      return reinterpret_cast<pointer>(std::addressof(*m_iterator));
+    }
 
     ordered_iterator& operator++() {
       ++m_iterator;
@@ -407,7 +423,9 @@ class ordered_hash : private Hash, private KeyEqual {
       return tmp;
     }
 
-    reference operator[](difference_type n) const { return m_iterator[n]; }
+    reference operator[](difference_type n) const {
+      return reinterpret_cast<reference>(m_iterator[n]);
+    }
 
     ordered_iterator& operator+=(difference_type n) {
       m_iterator += n;
