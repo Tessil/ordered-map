@@ -1454,7 +1454,7 @@ class ordered_hash : private Hash, private KeyEqual {
 #endif
 
     /*
-     * The insertion didn't happend at the end of the m_values container,
+     * The insertion didn't happen at the end of the m_values container,
      * we need to shift the indexes in m_buckets_data.
      */
     if (index_insert_position != m_values.size() - 1) {
