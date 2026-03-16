@@ -25,6 +25,7 @@ Two classes are provided: `tsl::ordered_map` and `tsl::ordered_set`.
 - Support for efficient serialization and deserialization (see [example](#serialization) and the `serialize/deserialize` methods in the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html) for details).
 - The library can be used with exceptions disabled (through `-fno-exceptions` option on Clang and GCC, without an `/EH` option on MSVC or simply by defining `TSL_NO_EXCEPTIONS`). `std::terminate` is used in replacement of the `throw` instruction when exceptions are disabled.
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
+- Support for C++ modules (requires C++20 or later)
 
 ### Differences compared to `std::unordered_map`
 `tsl::ordered_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
@@ -81,6 +82,8 @@ cmake ..
 cmake --build .
 ./tsl_ordered_map_tests 
 ```
+
+To enable C++ modules, the version must be at least C++20 on any compiler supporting C++ modules (minimal versions usually Clang 18, GCC 15, and MSVC 17). When configuring CMake, pass `-DTSL_ORDERED_MAP_BUILD_MODULE=ON` to enable the `TSL_ORDERED_MAP_BUILD_MODULE` option. This creates a module `tsl.ordered_map`, which exports `tsl::ordered_map` and `tsl::ordered_set`.
 
 ### Usage
 

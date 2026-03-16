@@ -26,6 +26,28 @@ endif()
 
 
 
+option(TSL_ORDERED_MAP_BUILD_MODULE "Build the C++20 module for tsl::ordered_map" OFF)
+
+if(TSL_ORDERED_MAP_BUILD_MODULE)
+    if(CMAKE_CXX_STANDARD LESS 20)
+        message(FATAL_ERROR "TSL_ORDERED_MAP_BUILD_MODULE requires C++20 or later (CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD})")
+    endif()
+
+    add_library(ordered_map_module)
+    add_library(tsl::ordered_map_module ALIAS ordered_map_module)
+
+    target_sources(ordered_map_module
+                   PUBLIC FILE_SET CXX_MODULES FILES
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/tsl.ordered_map.cppm")
+
+    target_link_libraries(ordered_map_module PUBLIC tsl::ordered_map)
+    set_target_properties(ordered_map_module PROPERTIES CXX_STANDARD 20)
+
+    install(TARGETS ordered_map_module
+            EXPORT tsl-ordered-mapTargets
+            FILE_SET CXX_MODULES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+endif()
+
 include(CMakePackageConfigHelpers)
 
 ## Install include directory and potential natvis file
