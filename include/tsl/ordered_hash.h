@@ -1223,7 +1223,7 @@ class ordered_hash : private Hash, private KeyEqual {
                      bucket_entry::truncate_hash(hash) &&
                  compare_keys(
                      key, KeySelect()(m_values[m_buckets[ibucket].index()]))) {
-        return m_buckets_data.begin() + ibucket;
+        return m_buckets_data.begin() + static_cast<difference_type>(ibucket);
       } else if (dist_from_ideal_bucket > distance_from_ideal_bucket(ibucket)) {
         return m_buckets_data.end();
       }
