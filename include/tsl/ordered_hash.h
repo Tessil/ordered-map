@@ -949,7 +949,6 @@ class ordered_hash : private Hash, private KeyEqual {
     m_max_load_factor = clamp(ml, float(MAX_LOAD_FACTOR__MINIMUM),
                               float(MAX_LOAD_FACTOR__MAXIMUM));
 
-    m_max_load_factor = ml;
     m_load_threshold = size_type(float(bucket_count()) * m_max_load_factor);
   }
 
