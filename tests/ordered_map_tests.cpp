@@ -1353,6 +1353,40 @@ BOOST_AUTO_TEST_CASE(test_swap_empty) {
 }
 
 /**
+ * max_load_factor
+ */
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_max_load_factor_clamp, HMap, test_types) {
+  const std::pair<float, float> factors[] = {
+      {0.05f, 0.1f}, {0.1f, 0.1f}, {0.5f, 0.5f},
+      {0.95f, 0.95f}, {0.99f, 0.95f}};
+
+  for (std::size_t count : {std::size_t(0), std::size_t(3)}) {
+    for (const auto& factor : factors) {
+      auto map = utils::get_filled_hash_map<HMap>(count);
+      const auto buckets = map.bucket_count();
+      map.max_load_factor(factor.first);
+      BOOST_REQUIRE_EQUAL(map.max_load_factor(), factor.second);
+      BOOST_CHECK_EQUAL(map.bucket_count(), buckets);
+
+      serializer serial;
+      map.serialize(serial);
+      deserializer header(serial.str());
+      header.template operator()<std::uint64_t>();  // protocol version
+      BOOST_CHECK_EQUAL(header.template operator()<std::uint64_t>(), count);
+      BOOST_CHECK_EQUAL(header.template operator()<std::uint64_t>(), buckets);
+      BOOST_CHECK_EQUAL(header.template operator()<float>(), factor.second);
+
+      for (bool hash_compatible : {false, true}) {
+        deserializer dserial(serial.str());
+        auto restored = HMap::deserialize(dserial, hash_compatible);
+        BOOST_CHECK_EQUAL(restored.max_load_factor(), factor.second);
+        BOOST_CHECK(utils::test_is_equal(restored, map));
+      }
+    }
+  }
+}
+
+/**
  * serialize and deserialize
  */
 BOOST_AUTO_TEST_CASE(test_serialize_deserialize_empty) {

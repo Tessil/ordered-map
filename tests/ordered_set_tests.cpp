@@ -47,6 +47,46 @@ using test_types = boost::mpl::list<
     tsl::ordered_set<move_only_test, mod_hash<9>>>;
 
 /**
+ * max_load_factor
+ */
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_max_load_factor_clamp, HSet, test_types) {
+  const std::pair<float, float> factors[] = {
+      {0.05f, 0.1f}, {0.1f, 0.1f}, {0.5f, 0.5f},
+      {0.95f, 0.95f}, {0.99f, 0.95f}};
+
+  for (std::size_t count : {std::size_t(0), std::size_t(3)}) {
+    for (const auto& factor : factors) {
+      HSet set;
+      for (std::size_t i = 0; i < count; ++i) {
+        set.insert(utils::get_key<typename HSet::key_type>(i));
+      }
+      const auto buckets = set.bucket_count();
+      set.max_load_factor(factor.first);
+      BOOST_REQUIRE_EQUAL(set.max_load_factor(), factor.second);
+      BOOST_CHECK_EQUAL(set.bucket_count(), buckets);
+
+      serializer serial;
+      set.serialize(serial);
+      deserializer header(serial.str());
+      header.template operator()<std::uint64_t>();  // protocol version
+      BOOST_CHECK_EQUAL(header.template operator()<std::uint64_t>(), count);
+      BOOST_CHECK_EQUAL(header.template operator()<std::uint64_t>(), buckets);
+      BOOST_CHECK_EQUAL(header.template operator()<float>(), factor.second);
+
+      for (bool hash_compatible : {false, true}) {
+        deserializer dserial(serial.str());
+        auto restored = HSet::deserialize(dserial, hash_compatible);
+        BOOST_CHECK_EQUAL(restored.max_load_factor(), factor.second);
+        BOOST_CHECK(restored == set);
+        for (const auto& key : set) {
+          BOOST_CHECK(restored.find(key) != restored.end());
+        }
+      }
+    }
+  }
+}
+
+/**
  * insert
  */
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HSet, test_types) {
