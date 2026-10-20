@@ -41,6 +41,18 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
+
+Reverse iterators are `std::reverse_iterator` adaptors and do not expose `value()`.
+To modify a value during reverse iteration, include `<iterator>` and use
+`std::prev(it.base()).value()`. The base iterator points one position past the
+element referred to by the reverse iterator; in particular, `rbegin().base()` is
+`end()` and must not be dereferenced.
+
+```c++
+for(auto it = map.rbegin(); it != map.rend(); ++it) {
+    std::prev(it.base()).value() = 3;
+}
+```
 - By default the map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values. This can be raised through the `IndexType` class template parameter, check the [API](https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details) for details. 
 - No support for some bucket related methods (like `bucket_size`, `bucket`, ...).
 
